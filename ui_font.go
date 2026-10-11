@@ -5,7 +5,7 @@ package main
 import (
 	_ "embed"
 	g "github.com/AllenDang/giu"
-	"strings"
+	"image"
 	"vencordinstaller/buildinfo"
 )
 
@@ -32,17 +32,28 @@ func setUILanguage(arabic bool) {
 
 func uiParagraph(text string) g.Widget {
 	text = translatedUI(text)
-	var lines g.Layout
-	for _, line := range strings.Split(text, "\n") {
-		if line == "" {
-			lines = append(lines, g.Dummy(0, 12))
-			continue
+	return g.Custom(func() {
+		start := g.GetCursorPos()
+		width, _ := g.GetAvailableRegion()
+		for _, line := range wrapUIText(text, width, func(value string) float32 {
+			w, _ := g.CalcTextSize(visualArabic(value))
+			return w
+		}) {
+			if line == "" {
+				g.Dummy(0, 12).Build()
+				continue
+			}
+			visual := visualArabic(line)
+			x := start.X
+			if uiArabic {
+				w, _ := g.CalcTextSize(visual)
+				if width > w {
+					x += int(width - w)
+				}
+			}
+			g.SetCursorPos(image.Pt(x, g.GetCursorPos().Y))
+			g.Label(visual).Build()
+			g.SetCursorPos(image.Pt(start.X, g.GetCursorPos().Y))
 		}
-		alignment := g.AlignLeft
-		if uiArabic {
-			alignment = g.AlignRight
-		}
-		lines = append(lines, g.Align(alignment).To(g.Label(visualArabic(line))))
-	}
-	return g.Column(lines...)
+	})
 }

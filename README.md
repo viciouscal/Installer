@@ -2,7 +2,7 @@
 
 ## Fork testing and releases
 
-The GUI opens in Arabic. Use the **English** / **العربية** buttons to switch
+The GUI opens in Arabic. Press the Saudi/US split flag button to switch
 languages during the session. Arabic display uses contextual letter shaping,
 bidirectional text ordering and a bundled IBM Plex Sans Arabic Bold font; Latin names, URLs and
 paths retain their direction. CLI output and technical diagnostics remain in
