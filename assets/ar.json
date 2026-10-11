@@ -58,5 +58,6 @@
   "If Discord is still open, fully close it first. Then start it again and it should be back to stock!": "أغلق Discord بالكامل ثم أعد تشغيله\nليعود إلى حالته الأصلية.",
   "Invalid Location": "مسار غير صالح",
   "The specified location is not a valid Discord install.\nMake sure you select the base folder.\n\nHint: Discord snap is not supported. use flatpak or .deb": "المسار المحدد لا يحتوي على تثبيت Discord صالح.\nتأكد من اختيار المجلد الأساسي.\n\nنسخة snap غير مدعومة؛ استخدم flatpak أو حزمة deb.",
-  "Failed to fetch Info from GitHub. If this issue persists, visit https://github.com/viciouscal/Installer/issues for help.": "تعذر جلب معلومات الريليس من GitHub.\nتحقق من اتصالك بالشبكة، ثم أعد تشغيل المثبت."
+  "Failed to fetch Info from GitHub. If this issue persists, visit https://github.com/viciouscal/Installer/issues for help.": "تعذر جلب معلومات الريليس من GitHub.\nتحقق من اتصالك بالشبكة، ثم أعد تشغيل المثبت.",
+  " (Vencord Arab Installed)": " (تم تثبيت فينكورد العرب)"
 }

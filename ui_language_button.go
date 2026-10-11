@@ -30,10 +30,22 @@ func makeLanguageButton() {
 	if err != nil {
 		panic(err)
 	}
-	icon := image.NewRGBA(image.Rect(0, 0, 104, 32))
-	draw.BiLinear.Scale(icon, image.Rect(0, 0, 52, 32), sa, sa.Bounds(), draw.Src, nil)
-	draw.BiLinear.Scale(icon, image.Rect(52, 0, 104, 32), us, us.Bounds(), draw.Src, nil)
-	languageButton = g.ImageButtonWithRgba(icon).Size(104, 32).FramePadding(4).OnClick(func() { setUILanguage(!uiArabic) })
+	bounds := image.Rect(0, 0, 72, 40)
+	saImage := image.NewRGBA(bounds)
+	usImage := image.NewRGBA(bounds)
+	draw.BiLinear.Scale(saImage, bounds, sa, sa.Bounds(), draw.Src, nil)
+	draw.BiLinear.Scale(usImage, bounds, us, us.Bounds(), draw.Src, nil)
+	icon := image.NewRGBA(bounds)
+	for y := 0; y < bounds.Dy(); y++ {
+		for x := 0; x < bounds.Dx(); x++ {
+			if x*bounds.Dy()+y*bounds.Dx() < bounds.Dx()*bounds.Dy() {
+				icon.SetRGBA(x, y, usImage.RGBAAt(x, y))
+			} else {
+				icon.SetRGBA(x, y, saImage.RGBAAt(x, y))
+			}
+		}
+	}
+	languageButton = g.ImageButtonWithRgba(icon).Size(72, 40).FramePadding(4).OnClick(func() { setUILanguage(!uiArabic) })
 }
 
 func fitPopup(widget g.Widget) g.Widget {
