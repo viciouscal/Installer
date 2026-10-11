@@ -1,6 +1,5 @@
 /*
  * SPDX-License-Identifier: GPL-3.0
- * Vencord Installer, a cross platform gui/cli app for installing Vencord
  * Copyright (c) 2023 Vendicated and Vencord contributors
  */
 
@@ -44,16 +43,14 @@ func init() {
 }
 
 type DiscordInstall struct {
-	path             string // the base path
-	branch           string // canary / stable / ...
-	appPath          string // List of app folder to patch
+	path             string
+	branch           string
+	appPath          string
 	isPatched        bool
 	isFlatpak        bool
-	isSystemElectron bool // Needs special care https://aur.archlinux.org/packages/discord_arch_electron
+	isSystemElectron bool
 	isOpenAsar       *bool
 }
-
-//region Patch
 
 func patchAppAsar(dir string, isSystemElectron bool) (err error) {
 	appAsar := path.Join(dir, "app.asar")
@@ -103,7 +100,7 @@ func (di *DiscordInstall) patch() error {
 	Log.Info("Patching " + di.path + "...")
 	if LatestHash != InstalledHash {
 		if err := InstallLatestBuilds(); err != nil {
-			return nil // already shown dialog so don't return same error again
+			return nil
 		}
 	}
 
@@ -156,7 +153,7 @@ func (di *DiscordInstall) patch() error {
 
 		var err error
 		if !isSystemFlatpak && os.Getuid() == 0 {
-			// We are operating on a user flatpak but are root
+
 			actualUser := os.Getenv("SUDO_USER")
 			Log.Debug("This is a user install but we are root. Using su to run as", actualUser)
 			cmd := exec.Command("su", "-", actualUser, "-c", "sh", "-c", fullCmd)
@@ -175,10 +172,6 @@ func (di *DiscordInstall) patch() error {
 	}
 	return nil
 }
-
-//endregion
-
-// region Unpatch
 
 func unpatchAppAsar(dir string, isSystemElectron bool) (errOut error) {
 	appAsar := path.Join(dir, "app.asar")
@@ -250,5 +243,3 @@ func (di *DiscordInstall) unpatch() error {
 	di.isPatched = false
 	return nil
 }
-
-//endregion

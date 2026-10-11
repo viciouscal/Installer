@@ -1,0 +1,4 @@
+IBM Plex Sans Arabic Bold: supplied font, distributed under IBMPlex-LICENSE.txt.
+Arabic joining table: derived from Unicode 15.0 UnicodeData.txt.
+Unicode data source: https://www.unicode.org/Public/15.0.0/ucd/UnicodeData.txt
+Unicode data license: Unicode-LICENSE.txt.

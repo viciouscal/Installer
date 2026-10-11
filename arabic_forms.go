@@ -1,4 +1,3 @@
-// Generated from Unicode 15.0 UnicodeData.txt; see assets/Unicode-LICENSE.txt.
 package main
 
 var arabicForms = map[rune][4]rune{

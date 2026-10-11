@@ -1,12 +1,12 @@
-# Vencord Installer
+# Vencord Arab Installer
 
 ## Fork testing and releases
 
 The GUI opens in Arabic. Use the **English** / **العربية** buttons to switch
 languages during the session. Arabic display uses contextual letter shaping,
-bidirectional text ordering and a bundled Amiri font; Latin names, URLs and
+bidirectional text ordering and a bundled IBM Plex Sans Arabic Bold font; Latin names, URLs and
 paths retain their direction. CLI output and technical diagnostics remain in
-English. Amiri's SIL Open Font License and the Unicode data license are in
+English. IBM Plex's SIL Open Font License and the Unicode data license are in
 `assets/`. Tests cover Arabic joining, mixed text, font glyph coverage and the
 static GUI translations. Localized text is stored in logical order in
 `assets/ar.json`; shaping is applied only for display.
@@ -32,13 +32,12 @@ tags, and their assets are retained. Publishing the draft is a separate manual
 step. macOS release signing uses the upstream Apple secrets; preview builds
 are signed ad hoc. Winget submissions run only in the official repository.
 
-The Vencord Installer allows you to install [Vencord, the cutest Discord Desktop client mod](https://github.com/viciouscal/Vencord)
+The Vencord Arab Installer installs [Vencord Arab](https://github.com/viciouscal/Vencord)
 
-![image](https://user-images.githubusercontent.com/45497981/226734476-5fb42420-844d-4e27-ae06-4799118e086e.png)
 
 ## Usage
 
-See https://vencord.dev/download
+See https://github.com/viciouscal/Installer/releases
 
 ## Building from source
 
@@ -96,4 +95,3 @@ make
 
 You might want to pass some flags to this command to get a better build.
 See [the GitHub workflow](https://github.com/viciouscal/Installer/blob/main/.github/workflows/release.yml) for what flags I pass or if you want more precise instructions
-

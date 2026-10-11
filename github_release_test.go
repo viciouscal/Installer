@@ -36,7 +36,7 @@ func TestReleaseFallback(t *testing.T) {
 					res.Header.Set("Location", "https://github.com/viciouscal/Vencord/releases/tag/devbuild")
 					return res, nil
 				case "https://github.com/viciouscal/Vencord/releases/tag/devbuild":
-					return testResponse(r, 200, `<meta property="og:title" content="Release DevBuild abc1234 · viciouscal/Vencord">`), nil
+					return testResponse(r, 200, "<meta property=\"og:title\" content=\"Release DevBuild abc1234 · viciouscal/Vencord\">"), nil
 				case "https://github.com/viciouscal/Vencord/releases/expanded_assets/devbuild":
 					return testResponse(r, 200, `<a href="/viciouscal/Vencord/releases/download/devbuild/patcher.js">Patcher</a>
 <a href='/viciouscal/Vencord/releases/download/devbuild/renderer.js'>Renderer</a>

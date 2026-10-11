@@ -7,9 +7,6 @@ import (
 	"golang.org/x/text/unicode/bidi"
 )
 
-// arabicForms is generated from Unicode 15.0 UnicodeData.txt. The table and
-// Unicode license are included with this fork. ImGui draws text without shaping,
-// so convert logical Arabic to contextual presentation forms at display time.
 func shapeArabic(text string) string {
 	runes := []rune(text)
 	shaped := make([]rune, 0, len(runes))
@@ -29,7 +26,7 @@ func shapeArabic(text string) string {
 		}
 		joinPrevious := previous >= 0 && arabicForms[runes[previous]][2] != 0 && forms[1] != 0
 		joinNext := next < len(runes) && forms[2] != 0 && arabicForms[runes[next]][1] != 0
-		// Lam/alef ligatures avoid a gap between the two joined letters.
+
 		if current == '\u0644' && i+1 < len(runes) {
 			if ligature, ok := lamAlefForms[runes[i+1]]; ok {
 				form := 0
@@ -37,7 +34,7 @@ func shapeArabic(text string) string {
 					form = 1
 				}
 				shaped = append(shaped, ligature[form])
-				runes[i+1] = 0 // Skip the consumed alef, which cannot connect forward.
+				runes[i+1] = 0
 				continue
 			}
 		}
@@ -59,8 +56,6 @@ func shapeArabic(text string) string {
 	return strings.ReplaceAll(string(shaped), "\x00", "")
 }
 
-// visualArabic preserves Latin names, paths, numbers and each line's position.
-// Keep stored strings logical; only pass this result to the ImGui renderer.
 func visualArabic(text string) string {
 	lines := strings.Split(text, "\n")
 	for i, line := range lines {

@@ -9,7 +9,7 @@
   "RT_MANIFEST": {
     "#1": {
       "0409": {
-        "description": "An Installer for the Vencord Discord Mod",
+        "description": "An Installer for the Vencord Arab Discord Mod",
         "minimum-os": "win10",
         "execution-level": "as invoker",
         "dpi-awareness": "system"
@@ -21,11 +21,10 @@
       "0000": {
         "info": {
           "0409": {
-            "Comments": "Comments",
-            "CompanyName": "Vencord",
-            "FileDescription": "Vencord Installer",
+            "CompanyName": "Vencord Arab",
+            "FileDescription": "Vencord Arab Installer",
             "LegalCopyright": "© 2023 Vendicated and Contributors - GPL3.0",
-            "ProductName": "Vencord Installer",
+            "ProductName": "Vencord Arab Installer",
             "ProductVersion": ""
           }
         }

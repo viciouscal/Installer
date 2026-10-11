@@ -2,7 +2,6 @@
 
 /*
  * SPDX-License-Identifier: GPL-3.0
- * Vencord Installer, a cross platform gui/cli app for installing Vencord
  * Copyright (c) 2023 Vendicated and Vencord contributors
  */
 
@@ -18,7 +17,6 @@ import (
 	g "github.com/AllenDang/giu"
 	"github.com/AllenDang/imgui-go"
 
-	// png decoder for icon
 	_ "image/png"
 	"os"
 	path "path/filepath"
@@ -127,7 +125,7 @@ func InstallLatestBuilds() (err error) {
 
 	err = installLatestBuilds()
 	if err != nil {
-		ShowErrorModal("Failed to install the latest Vencord builds from GitHub", err.Error(), "https://vencord.dev/support/#Failed-to-install-the-latest-Vencord-builds-from-GitHub")
+		ShowErrorModal("Failed to install the latest Vencord Arab builds from GitHub", err.Error(), "https://github.com/viciouscal/Installer/issues")
 	}
 	return
 }
@@ -189,7 +187,7 @@ func handleErr(di *DiscordInstall, err error, action string) {
 		}
 	}
 
-	ShowErrorModal("Failed to "+action+" this Install.", err.Error(), "https://vencord.dev/support/#Failed-to-patch-this-Install")
+	ShowErrorModal("Failed to "+action+" this Install.", err.Error(), "https://github.com/viciouscal/Installer/issues")
 }
 
 func HandleScuffedInstall() {
@@ -222,7 +220,7 @@ func (di *DiscordInstall) Unpatch() {
 func onCustomInputChanged() {
 	p := customDir
 	if len(p) != 0 {
-		// Select the custom option for people
+
 		radioIdx = customChoiceIdx
 	}
 
@@ -233,13 +231,12 @@ func onCustomInputChanged() {
 
 	if isNewDir || wentUpADir {
 		autoCompleteDir = dir
-		// reset all the funnies
+
 		autoCompleteIdx = 0
 		lastAutoComplete = ""
 		autoCompleteFile = ""
 		autoCompleteCandidates = nil
 
-		// Generate autocomplete items
 		files, err := os.ReadDir(dir)
 		if err == nil {
 			for _, file := range files {
@@ -247,7 +244,7 @@ func onCustomInputChanged() {
 			}
 		}
 	} else if !didAutoComplete {
-		// reset auto complete and update our file
+
 		autoCompleteFile = path.Base(p)
 		lastAutoComplete = ""
 	}
@@ -259,10 +256,6 @@ func onCustomInputChanged() {
 	didAutoComplete = false
 }
 
-// go can you give me []any?
-// to pass to giu RangeBuilder?
-// yeeeeees
-// actually returns []string like a boss
 func makeAutoComplete() []any {
 	input := strings.ToLower(autoCompleteFile)
 
@@ -376,7 +369,7 @@ func RawInfoModal(id, title, description, extra string, isOpenAsar bool) g.Widge
 						return g.Column(
 							g.Dummy(0, 10),
 							g.Button(uiText("Take me there!")).OnClick(func() {
-								// this issue only exists on windows so using Windows specific path is oki
+
 								username := os.Getenv("USERNAME")
 								programData := os.Getenv("PROGRAMDATA")
 								g.OpenURL("file://" + path.Join(programData, username))
@@ -388,7 +381,7 @@ func RawInfoModal(id, title, description, extra string, isOpenAsar bool) g.Widge
 						return g.Column(
 							g.Dummy(0, 10),
 							g.Button(uiText("Open Settings")).OnClick(func() {
-								// "App Management" permissions doesnt exist on Monterey, just use full disk access for now
+
 								g.OpenURL("x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")
 							}).Size(200, 30),
 						)
@@ -511,9 +504,8 @@ func renderInstaller() g.Widget {
 			renderErrorCard(
 				DiscordYellow,
 				color.Black,
-				"**Github** and **vencord.dev** are the only official places to get Vencord. Any other site claiming to be us is malicious.\n"+
-					"If you downloaded from any other source, you should delete / uninstall everything immediately, run a malware scan and change your Discord password.",
-				90,
+				safetyWarning(),
+				180,
 			),
 		),
 
@@ -555,7 +547,7 @@ func renderInstaller() g.Widget {
 				}
 
 				if d.isPatched {
-					text += " (Vencord Installed)"
+					text += " (Vencord Arab Installed)"
 				}
 
 				return g.Row(
@@ -579,31 +571,28 @@ func renderInstaller() g.Widget {
 							Size(w-16).
 							Flags(g.InputTextFlagsCallbackCompletion).
 							OnChange(onCustomInputChanged).
-							// this library has its own autocomplete but it's broken
 							Callback(
 								func(data imgui.InputTextCallbackData) int32 {
 									if len(candidates) == 0 {
 										return 0
 									}
-									// just wrap around
+
 									if autoCompleteIdx >= len(candidates) {
 										autoCompleteIdx = 0
 									}
 
-									// used by change handler
 									didAutoComplete = true
 
 									start := len(customDir)
-									// Delete previous auto complete
+
 									if lastAutoComplete != "" {
 										start -= len(lastAutoComplete)
 										data.DeleteBytes(start, len(lastAutoComplete))
-									} else if autoCompleteFile != "" { // delete partial input
+									} else if autoCompleteFile != "" {
 										start -= len(autoCompleteFile)
 										data.DeleteBytes(start, len(autoCompleteFile))
 									}
 
-									// Insert auto complete
 									lastAutoComplete = candidates[autoCompleteIdx].(string)
 									data.InsertBytes(start, []byte(lastAutoComplete))
 									autoCompleteIdx++
@@ -622,7 +611,7 @@ func renderInstaller() g.Widget {
 		g.Dummy(0, 20),
 
 		g.Style().SetFontSize(20).To(
-			uiActionRow(
+			g.Row(
 				g.Style().
 					SetColor(g.StyleColorButton, DiscordGreen).
 					SetColor(g.StyleColorButtonHovered, DiscordGreenHovered).
@@ -652,7 +641,7 @@ func renderInstaller() g.Widget {
 								}
 							}).
 							Size((w-40)/4, 50),
-						Tooltip("Reinstall & Update Vencord"),
+						Tooltip("Reinstall & Update Vencord Arab"),
 					),
 				g.Style().
 					SetColor(g.StyleColorButton, DiscordRed).
@@ -677,16 +666,16 @@ func renderInstaller() g.Widget {
 			),
 		),
 
-		InfoModal("#patched", "Installed!", "Vencord was successfully installed!"),
-		InfoModal("#unpatched", "Uninstalled", "Vencord has been uninstalled!"),
+		InfoModal("#patched", "Installed!", "Vencord Arab was successfully installed!"),
+		InfoModal("#unpatched", "Uninstalled", "Vencord Arab has been uninstalled!"),
 		InfoModal("#scuffed-install", "Hold On!", "You have a broken Discord Install.\n"+
 			"Sometimes Discord decides to install to the wrong location for some reason!\n"+
-			"You need to fix this before patching, otherwise Vencord will likely not work.\n\n"+
+			"You need to fix this before patching, otherwise Vencord Arab will likely not work.\n\n"+
 			"Use the below button to jump there and delete any folder called Discord or Squirrel.\n"+
 			"If the folder is now empty, feel free to go back a step and delete that folder too.\n"+
 			"Then see if Discord still starts. If not, reinstall it"),
 		RawInfoModal("#openasar-confirm", "OpenAsar", "OpenAsar is an open-source alternative of Discord desktop's app.asar.\n"+
-			"Vencord is in no way affiliated with OpenAsar.\n"+
+			"Vencord Arab is in no way affiliated with OpenAsar.\n"+
 			"You're installing OpenAsar at your own risk. If you run into issues with OpenAsar,\n"+
 			"no support will be provided, join the OpenAsar Server instead!\n\n"+
 			"To install OpenAsar, press Accept and click 'Install OpenAsar' again.", "", true),
@@ -755,7 +744,7 @@ func loop() {
 			g.Dummy(0, 12),
 			g.Align(g.AlignCenter).To(
 				g.Style().SetFontSize(40).To(
-					g.Label(uiText("Vencord Installer")),
+					g.Label(uiText("Vencord Arab Installer")),
 				),
 			),
 			g.Dummy(0, 40),
@@ -763,7 +752,7 @@ func loop() {
 			&CondWidget{
 				GithubError != nil,
 				func() g.Widget {
-					return g.Style().SetFontSize(20).To(renderErrorCard(DiscordRed, color.White, "Failed to fetch Info from GitHub. If this issue persists, visit https://vencord.dev/support for help.", 40))
+					return g.Style().SetFontSize(20).To(renderErrorCard(DiscordRed, color.White, "Failed to fetch Info from GitHub. If this issue persists, visit https://github.com/viciouscal/Installer/issues for help.", 40))
 				},
 				nil,
 			},

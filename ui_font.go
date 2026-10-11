@@ -9,10 +9,7 @@ import (
 	"vencordinstaller/buildinfo"
 )
 
-// Amiri supports Arabic presentation forms and Latin. Bundle it so Arabic
-// works on systems without Arabic fonts; assets/Amiri-OFL.txt accompanies it.
-//
-//go:embed assets/Amiri-Regular.ttf
+//go:embed assets/IBMPlexSansArabic-Bold.ttf
 var arabicFont []byte
 
 func setupUIFont() {
@@ -20,7 +17,7 @@ func setupUIFont() {
 }
 
 func localizedWindowTitle() string {
-	title := translatedUI("Vencord Installer")
+	title := translatedUI("Vencord Arab Installer")
 	if buildinfo.InstallerTag == buildinfo.VersionUnknown {
 		title += " [" + translatedUI("Preview") + "]"
 	}
@@ -48,13 +45,4 @@ func uiParagraph(text string) g.Widget {
 		lines = append(lines, g.Align(alignment).To(g.Label(visualArabic(line))))
 	}
 	return g.Column(lines...)
-}
-
-func uiActionRow(widgets ...g.Widget) g.Widget {
-	if uiArabic {
-		for i, j := 0, len(widgets)-1; i < j; i, j = i+1, j-1 {
-			widgets[i], widgets[j] = widgets[j], widgets[i]
-		}
-	}
-	return g.Row(widgets...)
 }

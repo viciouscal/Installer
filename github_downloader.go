@@ -1,6 +1,5 @@
 /*
  * SPDX-License-Identifier: GPL-3.0
- * Vencord Installer, a cross platform gui/cli app for installing Vencord
  * Copyright (c) 2023 Vendicated and Vencord contributors
  */
 
@@ -49,7 +48,7 @@ func InitGithubDownloader() {
 	}
 
 	go func() {
-		// Make sure UI updates once the request either finished or failed
+
 		defer func() {
 			GithubDoneChan <- GithubError == nil
 		}()
@@ -68,15 +67,14 @@ func InitGithubDownloader() {
 		Log.Debug("Latest hash is", LatestHash, "Local Install is", Ternary(LatestHash == InstalledHash, "up to date!", "outdated!"))
 	}()
 
-	// Check hash of installed version if exists
 	f, err := os.Open(Patcher)
 	if err != nil {
 		return
 	}
-	//goland:noinspection GoUnhandledErrorResult
+
 	defer f.Close()
 
-	Log.Debug("Found existing Vencord Install. Checking for hash...")
+	Log.Debug("Found existing Vencord Arab Install. Checking for hash...")
 	scanner := bufio.NewScanner(f)
 	if scanner.Scan() {
 		line := scanner.Text()
@@ -90,14 +88,9 @@ func InitGithubDownloader() {
 }
 
 func installLatestBuilds() (retErr error) {
-	// long error for testing
-	// return errors.New("According to all known laws of aviation, there is no way a bee should be able to fly. Its wings are too small to get its fat little body off the ground. The bee, of course, flies anyway because bees don't care what humans think is impossible. Yellow, black. Yellow, black. Yellow, black. Yellow, black. Ooh, black and yellow! Let's shake it up a little. Barry! Breakfast is ready! Coming! Hang on a second. Hello? Barry? Adam? Can you believe this is happening? I can't. I'll pick you up. Looking sharp. Use the stairs, Your father paid good money for those. Sorry. I'm excited. Here's the graduate. We're very proud of you, son. A perfect report card, all B's. Very proud. Ma! I got a thing going here. You got lint on your fuzz. Ow! That's me! Wave to us! We'll be in row 118,000. Bye! Barry, I told you, stop flying in the house! Hey, Adam. Hey, Barry. Is that fuzz gel? A little. Special day, graduation. Never thought I'd make it. Three days grade school, three days high school. Those were awkward. Three days college. I'm glad I took a day and hitchhiked around The Hive. You did come back different. Hi, Barry. Artie, growing a mustache? Looks good. Hear about Frankie? Yeah. You going to the funeral? No, I'm not going. Everybody knows, sting someone, you die. Don't waste it on a squirrel. Such a hothead. I guess he could have just gotten out of the way. I love this incorporating an amusement park into our day. That's why we don't need vacations. Boy, quite a bit of pomp under the circumstances. Well, Adam, today we are men. We are! Bee-men. Amen! Hallelujah! Students, faculty, distinguished bees, please welcome Dean Buzzwell.")
+
 	Log.Debug("Installing latest builds...")
 
-	// create an empty package.json file in our files dir.
-	// without this, node will walk up the file tree and search for a package.json in the
-	// parent folders. This might lead to issues if the user for example has ~/package.json
-	// with type: "module" in it
 	pkgJsonFile := path.Join(FilesDir, "package.json")
 	err := os.WriteFile(pkgJsonFile, []byte("{}"), 0644)
 	if err != nil {
@@ -113,7 +106,7 @@ func installLatestBuilds() (retErr error) {
 			strings.HasPrefix(ass.Name, "renderer.js") ||
 			strings.HasPrefix(ass.Name, "renderer.css") {
 			wg.Add(1)
-			ass := ass // Need to do this to not have the variable be overwritten halfway through
+			ass := ass
 			go func() {
 				defer wg.Done()
 				Log.Debug("Downloading file", ass.Name)

@@ -1,6 +1,5 @@
 /*
  * SPDX-License-Identifier: GPL-3.0
- * Vencord Installer, a cross platform gui/cli app for installing Vencord
  * Copyright (c) 2023 Vendicated and Vencord contributors
  */
 
@@ -16,7 +15,7 @@ const ReleaseUrlFallback = "https://github.com/viciouscal/Vencord/releases/lates
 const InstallerReleaseUrl = "https://api.github.com/repos/viciouscal/Installer/releases/latest"
 const InstallerReleaseUrlFallback = "https://github.com/viciouscal/Installer/releases/latest"
 
-var UserAgent = "VencordInstaller/" + buildinfo.InstallerGitHash + " (https://github.com/viciouscal/Installer)"
+var UserAgent = "VencordARInstaller/" + buildinfo.InstallerGitHash + " (https://github.com/viciouscal/Installer)"
 
 var (
 	DiscordGreen        = color.RGBA{0, 133, 69, 0xff}
@@ -40,7 +39,7 @@ var LinuxDiscordNames = []string{
 	"discord-ptb",
 	"discord-canary",
 	"discord-development",
-	// Flatpak
+
 	"com.discordapp.Discord",
 	"com.discordapp.DiscordPTB",
 	"com.discordapp.DiscordCanary",

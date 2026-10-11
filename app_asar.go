@@ -19,8 +19,6 @@ type asarEntry struct {
 	Offset string `json:"offset"`
 }
 
-// Ported from https://github.com/GeopJr/asar-cr/blob/cd7695b7c913bf921d9fb6600eaeb1400e3ba225/src/asar-cr/pack.cr#L61
-
 func WriteAppAsar(outFile string, patcherPath string) error {
 	header := make(map[string]map[string]asarEntry)
 	files := make(map[string]asarEntry)
