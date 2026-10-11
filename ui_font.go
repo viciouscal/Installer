@@ -12,8 +12,23 @@ import (
 //go:embed assets/IBMPlexSansArabic-Bold.ttf
 var arabicFont []byte
 
+//go:embed assets/IBMPlexSans-Bold.ttf
+var englishFont []byte
+
+var arabicFontInfo *g.FontInfo
+var englishFontInfo *g.FontInfo
+
 func setupUIFont() {
 	g.SetDefaultFontFromBytes(arabicFont, 24)
+	arabicFontInfo = g.AddFontFromBytes("IBMPlexSansArabic-Bold", arabicFont, 24)
+	englishFontInfo = g.AddFontFromBytes("IBMPlexSans-Bold", englishFont, 24)
+}
+
+func uiFont(size float32) *g.FontInfo {
+	if uiArabic {
+		return arabicFontInfo.SetSize(size)
+	}
+	return englishFontInfo.SetSize(size)
 }
 
 func localizedWindowTitle() string {

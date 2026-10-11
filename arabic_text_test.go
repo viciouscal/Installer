@@ -65,6 +65,33 @@ func TestArabicTranslationsAndFontCoverage(t *testing.T) {
 	}
 }
 
+func TestEnglishFontCoverage(t *testing.T) {
+	data, err := os.ReadFile("assets/IBMPlexSans-Bold.ttf")
+	if err != nil {
+		t.Fatal(err)
+	}
+	font, err := sfnt.Parse(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var buffer sfnt.Buffer
+	texts := []string{"US - AR", "vencordar.com"}
+	for key := range arabicTranslations {
+		texts = append(texts, key)
+	}
+	for _, text := range texts {
+		for _, r := range text {
+			if unicode.IsSpace(r) {
+				continue
+			}
+			glyph, err := font.GlyphIndex(&buffer, r)
+			if err != nil || glyph == 0 {
+				t.Errorf("missing English glyph %U: %v", r, err)
+			}
+		}
+	}
+}
+
 func TestLanguageSwitch(t *testing.T) {
 	original := uiArabic
 	t.Cleanup(func() { uiArabic = original })

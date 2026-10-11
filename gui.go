@@ -281,7 +281,7 @@ func renderFilesDirErr() g.Widget {
 		g.Dummy(0, 50),
 		g.Style().
 			SetColor(g.StyleColorText, DiscordRed).
-			SetFontSize(30).
+			SetFont(uiFont(30)).
 			To(
 				g.Align(g.AlignCenter).To(
 					g.Label(uiText("Error: Failed to create: "+FilesDirErr.Error())),
@@ -316,9 +316,9 @@ func ErrorModal(id, title, error, supportLink string) g.Widget {
 			g.PopupModal(id).
 				Flags(g.WindowFlagsNoTitleBar|g.WindowFlagsAlwaysAutoResize).
 				Layout(
-					g.Style().SetFontSize(35).To(uiParagraph(title)),
+					g.Style().SetFont(uiFont(35)).To(uiParagraph(title)),
 					g.Dummy(0, 5),
-					g.Style().SetFontSize(25).To(
+					g.Style().SetFont(uiFont(25)).To(
 						g.Row(
 							g.Label(uiText("If this issue persists, visit")),
 							g.Style().
@@ -332,8 +332,8 @@ func ErrorModal(id, title, error, supportLink string) g.Widget {
 						),
 					),
 					g.Dummy(0, 20),
-					g.Style().SetFontSize(20).To(g.Label(uiText("Error Information"))),
-					g.Style().SetFontSize(18).To(uiParagraph(error)),
+					g.Style().SetFont(uiFont(20)).To(g.Label(uiText("Error Information"))),
+					g.Style().SetFont(uiFont(18)).To(uiParagraph(error)),
 					g.Dummy(0, 20),
 					g.Button(uiText("Ok")).
 						OnClick(func() { g.CloseCurrentPopup() }).
@@ -351,17 +351,17 @@ func RawInfoModal(id, title, description, extra string, isOpenAsar bool) g.Widge
 			g.PopupModal(id).
 				Flags(g.WindowFlagsNoTitleBar|g.WindowFlagsAlwaysAutoResize).
 				Layout(
-					g.Style().SetFontSize(30).To(
+					g.Style().SetFont(uiFont(30)).To(
 						uiParagraph(title),
 					),
 					g.Dummy(0, 5),
-					g.Style().SetFontSize(20).To(
+					g.Style().SetFont(uiFont(20)).To(
 						uiParagraph(description),
 					),
 					&CondWidget{extra != "", func() g.Widget {
 						return g.Column(
 							g.Dummy(0, 10),
-							g.Style().SetFontSize(20).To(
+							g.Style().SetFont(uiFont(20)).To(
 								uiParagraph(extra),
 							),
 						)
@@ -424,10 +424,10 @@ func UpdateModal() g.Widget {
 				Flags(g.WindowFlagsNoTitleBar | g.WindowFlagsAlwaysAutoResize).
 				Layout(
 					g.Align(g.AlignCenter).To(
-						g.Style().SetFontSize(30).To(
+						g.Style().SetFont(uiFont(30)).To(
 							g.Label(uiText("Your Installer is outdated!")),
 						),
-						g.Style().SetFontSize(20).To(
+						g.Style().SetFont(uiFont(20)).To(
 							g.Label(uiText("Would you like to update now?\n\n"+
 								"Once you press Update Now, the new installer will automatically be downloaded.\n"+
 								"The installer will temporarily seem unresponsive. Just wait!\n"+
@@ -501,7 +501,7 @@ func renderInstaller() g.Widget {
 	}
 
 	layout := g.Layout{
-		g.Style().SetFontSize(20).To(
+		g.Style().SetFont(uiFont(20)).To(
 			renderErrorCard(
 				DiscordYellow,
 				color.Black,
@@ -512,7 +512,7 @@ func renderInstaller() g.Widget {
 
 		g.Dummy(0, 20),
 
-		g.Style().SetFontSize(30).To(
+		g.Style().SetFont(uiFont(30)).To(
 			uiParagraph("Please select an install to patch"),
 		),
 		g.Dummy(0, 10),
@@ -525,14 +525,14 @@ func renderInstaller() g.Widget {
 
 			return &CondWidget{!showCustomLocation, func() g.Widget {
 				return g.Column(
-					g.Style().SetFontSize(25).To(uiParagraph(s)),
+					g.Style().SetFont(uiFont(25)).To(uiParagraph(s)),
 					g.Dummy(0, 10),
 					g.Checkbox(uiText("I am an advanced user and have Discord installed at a different location"), &showCustomLocation),
 				)
 			}, nil}
 		}, nil},
 
-		g.Style().SetFontSize(20).To(
+		g.Style().SetFont(uiFont(20)).To(
 			g.RangeBuilder("Discords", discords, func(i int, v any) g.Widget {
 				d := v.(*DiscordInstall)
 				var text string
@@ -566,7 +566,7 @@ func renderInstaller() g.Widget {
 				g.Dummy(0, 5),
 				g.Style().
 					SetStyle(g.StyleVarFramePadding, 16, 16).
-					SetFontSize(20).
+					SetFont(uiFont(20)).
 					To(
 						g.InputText(&customDir).Hint(uiText("The custom location")).
 							Size(w-16).
@@ -611,7 +611,7 @@ func renderInstaller() g.Widget {
 
 		g.Dummy(0, 20),
 
-		g.Style().SetFontSize(20).To(
+		g.Style().SetFont(uiFont(20)).To(
 			g.Row(
 				g.Style().
 					SetColor(g.StyleColorButton, DiscordGreen).
@@ -755,12 +755,10 @@ func loop() {
 			}},
 		).
 		Layout(
-			g.AlignManually(g.AlignRight,
-				g.Style().SetStyleFloat(g.StyleVarFrameRounding, 12).
-					SetStyleFloat(g.StyleVarFrameBorderSize, 0).To(languageButton), 80, false),
+			languageSelector(),
 			g.Dummy(0, 12),
 			g.Align(g.AlignCenter).To(
-				g.Style().SetFontSize(40).To(
+				g.Style().SetFont(uiFont(40)).To(
 					g.Label(uiText("Vencord Arab Installer")),
 				),
 			),
@@ -769,7 +767,7 @@ func loop() {
 			&CondWidget{
 				GithubError != nil,
 				func() g.Widget {
-					return g.Style().SetFontSize(20).To(renderErrorCard(DiscordRed, color.White, "Failed to fetch Info from GitHub. If this issue persists, visit https://github.com/viciouscal/Installer/issues for help.", 40))
+					return g.Style().SetFont(uiFont(20)).To(renderErrorCard(DiscordRed, color.White, "Failed to fetch Info from GitHub. If this issue persists, visit https://github.com/viciouscal/Installer/issues for help.", 40))
 				},
 				nil,
 			},

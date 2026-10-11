@@ -2,9 +2,9 @@
 
 ## Fork testing and releases
 
-The GUI opens in Arabic. Press the Saudi/US split flag button to switch
+The GUI opens in Arabic. Press the borderless rounded flag beside US - AR to switch
 languages during the session. Arabic display uses contextual letter shaping,
-bidirectional text ordering and a bundled IBM Plex Sans Arabic Bold font; Latin names, URLs and
+bidirectional text ordering and a bundled IBM Plex Sans Arabic Bold and IBM Plex Sans Bold fonts; Latin names, URLs and
 paths retain their direction. CLI output and technical diagnostics remain in
 English. IBM Plex's SIL Open Font License and the Unicode data license are in
 `assets/`. Tests cover Arabic joining, mixed text, font glyph coverage and the

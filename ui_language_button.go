@@ -6,8 +6,10 @@ import (
 	"bytes"
 	_ "embed"
 	"image"
+	"image/color"
 	"image/png"
 	"math"
+	"sync/atomic"
 
 	g "github.com/AllenDang/giu"
 	"github.com/AllenDang/imgui-go"
@@ -20,7 +22,8 @@ var saFlagBytes []byte
 //go:embed assets/us.png
 var usFlagBytes []byte
 
-var languageButton *g.ImageButtonWithRgbaWidget
+var saLanguageButton atomic.Pointer[g.ImageButtonWidget]
+var usLanguageButton atomic.Pointer[g.ImageButtonWidget]
 
 func makeLanguageButton() {
 	sa, err := png.Decode(bytes.NewReader(saFlagBytes))
@@ -31,19 +34,24 @@ func makeLanguageButton() {
 	if err != nil {
 		panic(err)
 	}
+	g.EnqueueNewTextureFromRgba(roundedFlag(sa), func(texture *g.Texture) {
+		saLanguageButton.Store(g.ImageButton(texture).Size(72, 40).FramePadding(0).
+			BgColor(color.RGBA{}).OnClick(func() { setUILanguage(true) }))
+		g.Update()
+	})
+	g.EnqueueNewTextureFromRgba(roundedFlag(us), func(texture *g.Texture) {
+		usLanguageButton.Store(g.ImageButton(texture).Size(72, 40).FramePadding(0).
+			BgColor(color.RGBA{}).OnClick(func() { setUILanguage(false) }))
+		g.Update()
+	})
+}
+
+func roundedFlag(flag image.Image) image.Image {
 	bounds := image.Rect(0, 0, 72, 40)
-	saImage := image.NewRGBA(bounds)
-	usImage := image.NewRGBA(bounds)
-	draw.BiLinear.Scale(saImage, bounds, sa, sa.Bounds(), draw.Src, nil)
-	draw.BiLinear.Scale(usImage, bounds, us, us.Bounds(), draw.Src, nil)
 	icon := image.NewRGBA(bounds)
+	draw.BiLinear.Scale(icon, bounds, flag, flag.Bounds(), draw.Src, nil)
 	for y := 0; y < bounds.Dy(); y++ {
 		for x := 0; x < bounds.Dx(); x++ {
-			if x*bounds.Dy()+y*bounds.Dx() < bounds.Dx()*bounds.Dy() {
-				icon.SetRGBA(x, y, saImage.RGBAAt(x, y))
-			} else {
-				icon.SetRGBA(x, y, usImage.RGBAAt(x, y))
-			}
 			px, py := float64(x)+0.5, float64(y)+0.5
 			cx := math.Max(10, math.Min(float64(bounds.Dx())-10, px))
 			cy := math.Max(10, math.Min(float64(bounds.Dy())-10, py))
@@ -56,7 +64,36 @@ func makeLanguageButton() {
 			icon.SetRGBA(x, y, pixel)
 		}
 	}
-	languageButton = g.ImageButtonWithRgba(icon).Size(72, 40).FramePadding(4).OnClick(func() { setUILanguage(!uiArabic) })
+	return icon
+}
+
+func languageSelector() g.Widget {
+	return g.Style().SetFont(uiFont(20)).
+		SetStyleFloat(g.StyleVarFrameBorderSize, 0).
+		SetColor(g.StyleColorButton, color.RGBA{}).
+		SetColor(g.StyleColorButtonHovered, color.RGBA{}).
+		SetColor(g.StyleColorButtonActive, color.RGBA{}).
+		To(g.Custom(func() {
+			start := g.GetCursorPos()
+			available, _ := g.GetAvailableRegion()
+			width, height := g.CalcTextSize("US - AR")
+			x := start.X
+			if available > width+84 {
+				x += int(available - width - 84)
+			}
+			g.SetCursorPos(image.Pt(x, start.Y+int((40-height)/2)))
+			g.Label("US - AR").Build()
+			g.SetCursorPos(image.Pt(x+int(width)+12, start.Y))
+			button := saLanguageButton.Load()
+			if uiArabic {
+				button = usLanguageButton.Load()
+			}
+			if button != nil {
+				button.Build()
+			}
+			_, spacing := g.GetItemSpacing()
+			g.SetCursorPos(image.Pt(start.X, start.Y+40+int(spacing)))
+		}))
 }
 
 func fitPopup(widget g.Widget) g.Widget {
