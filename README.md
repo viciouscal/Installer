@@ -2,6 +2,15 @@
 
 ## Fork testing and releases
 
+The GUI opens in Arabic. Use the **English** / **العربية** buttons to switch
+languages during the session. Arabic display uses contextual letter shaping,
+bidirectional text ordering and a bundled Amiri font; Latin names, URLs and
+paths retain their direction. CLI output and technical diagnostics remain in
+English. Amiri's SIL Open Font License and the Unicode data license are in
+`assets/`. Tests cover Arabic joining, mixed text, font glyph coverage and the
+static GUI translations. Localized text is stored in logical order in
+`assets/ar.json`; shaping is applied only for display.
+
 This fork installs `viciouscal/Vencord` and checks installer updates from
 `viciouscal/Installer`. If the GitHub REST API fails (including HTTP 403 or
 429), release metadata is read from that same fork's public release page and
