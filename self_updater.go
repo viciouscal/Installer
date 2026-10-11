@@ -25,6 +25,7 @@ func init() {
 	//goland:noinspection GoBoolExpressions
 	if buildinfo.InstallerTag == buildinfo.VersionUnknown {
 		Log.Debug("Disabling self updater as this is not a release build")
+		SelfUpdateCheckDoneChan <- false
 		return
 	}
 
@@ -52,7 +53,7 @@ func GetInstallerDownloadLink() string {
 		filename := Ternary(buildinfo.UiType == buildinfo.UiTypeCli, "VencordInstallerCli.exe", "VencordInstaller.exe")
 		return BaseUrl + filename
 	case "darwin":
-		return BaseUrl + "VencordInstaller.MacOS.zip"
+		return BaseUrl + "VencordInstaller.dmg"
 	case "linux":
 		return BaseUrl + "VencordInstallerCli-linux"
 	default:
@@ -99,7 +100,7 @@ func UpdateSelf() error {
 		_ = os.Remove(tmp.Name())
 	}()
 	if err = tmp.Chmod(0o755); err != nil {
-		return fmt.Errorf("Failed to chmod 755", tmp.Name()+":", err)
+		return fmt.Errorf("failed to chmod 755 %s: %w", tmp.Name(), err)
 	}
 
 	if _, err = io.Copy(tmp, res.Body); err != nil {

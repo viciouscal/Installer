@@ -8,9 +8,9 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
+
 	"errors"
-	"fmt"
+
 	"io"
 	"net/http"
 	"os"
@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 type GithubRelease struct {
@@ -36,51 +37,6 @@ var GithubDoneChan chan bool
 var InstalledHash = "None"
 var LatestHash = "Unknown"
 var IsDevInstall bool
-
-func GetGithubRelease(url, fallbackUrl string) (*GithubRelease, error) {
-	Log.Debug("Fetching", url)
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		Log.Error("Failed to create Request", err)
-		return nil, err
-	}
-
-	req.Header.Set("User-Agent", UserAgent)
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		Log.Error("Failed to send Request", err)
-		return nil, err
-	}
-
-	defer res.Body.Close()
-
-	if res.StatusCode >= 300 {
-		isRateLimitedOrBlocked := res.StatusCode == 401 || res.StatusCode == 403 || res.StatusCode == 429
-		triedFallback := url == fallbackUrl
-
-		// GitHub has a very strict 60 req/h rate limit and some (mostly indian) isps block github for some reason.
-		// If that is the case, try our fallback at https://vencord.dev/releases/project
-		if isRateLimitedOrBlocked && !triedFallback {
-			Log.Error(fmt.Sprintf("Failed to fetch %s (status code %d). Trying fallback url %s", url, res.StatusCode, fallbackUrl))
-			return GetGithubRelease(fallbackUrl, fallbackUrl)
-		}
-
-		err = errors.New(res.Status)
-		Log.Error(url, "returned Non-OK status", GithubError)
-		return nil, err
-	}
-
-	var data GithubRelease
-
-	if err = json.NewDecoder(res.Body).Decode(&data); err != nil {
-		Log.Error("Failed to decode GitHub JSON Response", err)
-		return nil, err
-	}
-
-	return &data, nil
-}
 
 func InitGithubDownloader() {
 	GithubDoneChan = make(chan bool, 1)
@@ -134,6 +90,8 @@ func InitGithubDownloader() {
 }
 
 func installLatestBuilds() (retErr error) {
+	// long error for testing
+	// return errors.New("According to all known laws of aviation, there is no way a bee should be able to fly. Its wings are too small to get its fat little body off the ground. The bee, of course, flies anyway because bees don't care what humans think is impossible. Yellow, black. Yellow, black. Yellow, black. Yellow, black. Ooh, black and yellow! Let's shake it up a little. Barry! Breakfast is ready! Coming! Hang on a second. Hello? Barry? Adam? Can you believe this is happening? I can't. I'll pick you up. Looking sharp. Use the stairs, Your father paid good money for those. Sorry. I'm excited. Here's the graduate. We're very proud of you, son. A perfect report card, all B's. Very proud. Ma! I got a thing going here. You got lint on your fuzz. Ow! That's me! Wave to us! We'll be in row 118,000. Bye! Barry, I told you, stop flying in the house! Hey, Adam. Hey, Barry. Is that fuzz gel? A little. Special day, graduation. Never thought I'd make it. Three days grade school, three days high school. Those were awkward. Three days college. I'm glad I took a day and hitchhiked around The Hive. You did come back different. Hi, Barry. Artie, growing a mustache? Looks good. Hear about Frankie? Yeah. You going to the funeral? No, I'm not going. Everybody knows, sting someone, you die. Don't waste it on a squirrel. Such a hothead. I guess he could have just gotten out of the way. I love this incorporating an amusement park into our day. That's why we don't need vacations. Boy, quite a bit of pomp under the circumstances. Well, Adam, today we are men. We are! Bee-men. Amen! Hallelujah! Students, faculty, distinguished bees, please welcome Dean Buzzwell.")
 	Log.Debug("Installing latest builds...")
 
 	// create an empty package.json file in our files dir.
@@ -147,6 +105,7 @@ func installLatestBuilds() (retErr error) {
 	}
 
 	var wg sync.WaitGroup
+	var downloadedFiles atomic.Uint64
 
 	for _, ass := range ReleaseData.Assets {
 		if strings.HasPrefix(ass.Name, "patcher.js") ||
@@ -189,11 +148,20 @@ func installLatestBuilds() (retErr error) {
 					retErr = err
 					return
 				}
+				downloadedFiles.Add(1)
 			}()
 		}
 	}
 
 	wg.Wait()
+
+	if retErr != nil {
+		return retErr
+	}
+	if downloadedFiles.Load() < 4 {
+		return errors.New("Couldn't find all required files")
+	}
+
 	Log.Debug("Done!")
 	_ = FixOwnership(FilesDir)
 
