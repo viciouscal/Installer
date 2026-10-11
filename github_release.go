@@ -15,7 +15,6 @@ import (
 
 var releaseClient = &http.Client{Timeout: 30 * time.Second}
 
-// Public release pages and expanded asset lists do not consume the REST API quota.
 func GetGithubRelease(apiURL, fallbackURL string) (*GithubRelease, error) {
 	data, err := getReleaseJSON(apiURL)
 	if err == nil {
@@ -85,7 +84,7 @@ func getReleasePage(address string) (*GithubRelease, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Pin every fallback request and download link to the configured fork.
+
 	parts := strings.Split(strings.Trim(base.Path, "/"), "/")
 	if base.Scheme != "https" || base.Host != "github.com" || len(parts) != 4 || parts[2] != "releases" || parts[3] != "latest" {
 		return nil, fmt.Errorf("invalid GitHub release fallback URL")

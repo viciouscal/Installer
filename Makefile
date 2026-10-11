@@ -11,7 +11,6 @@ ifeq ($(VERSION),Unknown)
 RESOURCE_VERSION := 0.0.0
 endif
 
-# "Developer ID Application: <name> (<team-id>)" or "-"
 IDENTITY 	?= -
 
 GUI 		?= 0
@@ -41,7 +40,6 @@ TAGS 		+= wayland
 endif # WAYLAND
 endif # GUI
 
-# macOS specific
 MACOS_ARCHS := $(ARCH)
 ifeq ($(ARCH),universal)
 MACOS_ARCHS := amd64 arm64
@@ -86,7 +84,7 @@ ifeq ($(shell command -v create-dmg 2>/dev/null),)
 	$(error create-dmg is not installed)
 endif
 	create-dmg \
-		--volname "Vencord Installer" \
+		--volname "Vencord Arab Installer" \
 		--volicon macos/dmg.icns \
 		--background "macos/background.png" \
 		--window-pos 200 120 \

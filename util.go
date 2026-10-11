@@ -1,6 +1,5 @@
 /*
  * SPDX-License-Identifier: GPL-3.0
- * Vencord Installer, a cross platform gui/cli app for installing Vencord
  * Copyright (c) 2023 Vendicated and Vencord contributors
  */
 
@@ -89,9 +88,8 @@ func CheckIfErrIsCauseItsBusyRn(err error) error {
 		return err
 	}
 
-	// bruhhhh
 	if linkError, ok := err.(*os.LinkError); ok {
-		if errno, ok := linkError.Err.(syscall.Errno); ok && errno == 32 /* ERROR_SHARING_VIOLATION */ {
+		if errno, ok := linkError.Err.(syscall.Errno); ok && errno == 32 {
 			return errors.New(
 				"Cannot patch because Discord's files are used by a different process." +
 					"\nMake sure you close Discord before trying to patch!",

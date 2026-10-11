@@ -5,15 +5,15 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleDisplayName</key>
-	<string>Vencord Installer</string>
+	<string>Vencord Arab Installer</string>
 	<key>CFBundleExecutable</key>
 	<string>VencordInstaller</string>
 	<key>CFBundleIdentifier</key>
-	<string>dev.vendicated.vencordinstaller</string>
+	<string>io.github.viciouscal.vencordarinstaller</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Vencord Installer</string>
+	<string>Vencord Arab Installer</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

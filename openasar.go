@@ -1,6 +1,5 @@
 /*
  * SPDX-License-Identifier: GPL-3.0
- * Vencord Installer, a cross platform gui/cli app for installing Vencord
  * Copyright (c) 2023 Vendicated and Vencord contributors
  */
 
@@ -101,8 +100,7 @@ func (di *DiscordInstall) UninstallOpenAsar() error {
 	PreparePatch(di)
 
 	dir := path.Join(di.appPath, "..")
-	// .original is our old name
-	// OpenAsar's updater uses .backup, so we now also use that - .original is deprecated
+
 	for _, file := range []string{path.Join(dir, "app.asar.backup"), path.Join(dir, "app.asar.original")} {
 		if !ExistsFile(file) {
 			continue

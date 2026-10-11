@@ -1,6 +1,5 @@
 /*
  * SPDX-License-Identifier: GPL-3.0
- * Vencord Installer, a cross platform gui/cli app for installing Vencord
  * Copyright (c) 2023 Vendicated and Vencord contributors
  */
 
@@ -22,7 +21,7 @@ var IsSelfOutdated = false
 var SelfUpdateCheckDoneChan = make(chan bool, 1)
 
 func init() {
-	//goland:noinspection GoBoolExpressions
+
 	if buildinfo.InstallerTag == buildinfo.VersionUnknown {
 		Log.Debug("Disabling self updater as this is not a release build")
 		SelfUpdateCheckDoneChan <- false
@@ -62,7 +61,7 @@ func GetInstallerDownloadLink() string {
 }
 
 func CanUpdateSelf() bool {
-	//goland:noinspection GoBoolExpressions
+
 	return IsSelfOutdated && runtime.GOOS != "darwin"
 }
 
