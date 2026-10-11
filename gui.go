@@ -547,13 +547,12 @@ func renderInstaller() g.Widget {
 					text = "Discord"
 				}
 
-				if d.isPatched {
-					text += " (Vencord Arab Installed)"
-				}
-
 				return g.Row(
 					g.RadioButton(uiText(text), radioIdx == i).OnChange(makeRadioOnChange(i)),
 					g.Style().SetColor(g.StyleColorText, color.RGBA{0xff, 0xff, 0xff, 0x80}).To(g.Label(uiText(" "+d.path))),
+					&CondWidget{d.isPatched, func() g.Widget {
+						return g.Label(uiText(" (Vencord Arab Installed)"))
+					}, nil},
 				)
 			}),
 			&CondWidget{showCustomLocation, func() g.Widget {
@@ -700,8 +699,8 @@ func renderErrorCard(bgColor color.Color, textColor color.Color, message string,
 		}
 	}
 	var content g.Widget
-	if uiArabic && bgColor == DiscordYellow {
-		content = uiParagraph(message)
+	if bgColor == DiscordYellow {
+		content = warningWithLink(message)
 	} else {
 		message = uiText(message)
 		content = g.Markdown(&message)
@@ -714,7 +713,7 @@ func renderErrorCard(bgColor color.Color, textColor color.Color, message string,
 		To(
 			g.Custom(func() {
 				cardHeight := height
-				if uiArabic && bgColor == DiscordYellow {
+				if bgColor == DiscordYellow {
 					width, _ := g.GetAvailableRegion()
 					lines := wrapUIText(translatedUI(message), width-20, func(text string) float32 {
 						w, _ := g.CalcTextSize(visualArabic(text))
@@ -755,7 +754,7 @@ func loop() {
 			}},
 		).
 		Layout(
-			g.AlignManually(g.AlignRight, languageButton, 112, false),
+			g.AlignManually(g.AlignRight, languageButton, 80, false),
 			g.Dummy(0, 12),
 			g.Align(g.AlignCenter).To(
 				g.Style().SetFontSize(40).To(
