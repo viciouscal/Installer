@@ -6,6 +6,11 @@ ARCH		?= $(shell go env GOARCH)
 VERSION 	?= $(shell git describe --tags --abbrev=0)
 HASH 		:= $(shell git rev-parse --short HEAD | xargs)
 
+RESOURCE_VERSION := git-tag
+ifeq ($(VERSION),Unknown)
+RESOURCE_VERSION := 0.0.0
+endif
+
 # "Developer ID Application: <name> (<team-id>)" or "-"
 IDENTITY 	?= -
 
@@ -101,7 +106,7 @@ else ifeq ($(PLATFORM),windows) # PLATFORM
 	export GOROOT=/mingw64/lib/go
 	export GOPATH=/mingw64
 
-	go-winres make --product-version "git-tag"
+	go-winres make --product-version "$(RESOURCE_VERSION)"
 	CGO_ENABLED=$(CGO) GOOS=$(PLATFORM) GOARCH=$(ARCH) \
 		go build -v -tags "$(TAGS)" \
 		-ldflags "$(LDFLAGS)" \

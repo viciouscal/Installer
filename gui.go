@@ -25,6 +25,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"vencordinstaller/buildinfo"
 )
 
 var (
@@ -75,7 +76,11 @@ func main() {
 		g.Update()
 	}()
 
-	win = g.NewMasterWindow("Vencord Installer", 1200, 800, 0)
+	title := "Vencord Installer"
+	if buildinfo.InstallerTag == buildinfo.VersionUnknown {
+		title += " [Preview]"
+	}
+	win = g.NewMasterWindow(title, 1200, 800, 0)
 
 	icon, _, err := image.Decode(bytes.NewReader(iconBytes))
 	if err != nil {
