@@ -75,6 +75,7 @@ func main() {
 
 	setupUIFont()
 	win = g.NewMasterWindow(localizedWindowTitle(), 1200, 800, 0)
+	makeLanguageButton()
 
 	icon, _, err := image.Decode(bytes.NewReader(iconBytes))
 	if err != nil {
@@ -308,7 +309,7 @@ func InfoModalExtra(id, title, description, extra string) g.Widget {
 }
 
 func ErrorModal(id, title, error, supportLink string) g.Widget {
-	return g.Style().
+	return fitPopup(g.Style().
 		SetStyle(g.StyleVarWindowPadding, 30, 30).
 		SetStyleFloat(g.StyleVarWindowRounding, 12).
 		To(
@@ -332,23 +333,23 @@ func ErrorModal(id, title, error, supportLink string) g.Widget {
 					),
 					g.Dummy(0, 20),
 					g.Style().SetFontSize(20).To(g.Label(uiText("Error Information"))),
-					g.Style().SetFontSize(18).To(g.Label(uiText(error))),
+					g.Style().SetFontSize(18).To(uiParagraph(error)),
 					g.Dummy(0, 20),
 					g.Button(uiText("Ok")).
 						OnClick(func() { g.CloseCurrentPopup() }).
 						Size(100, 30),
 				),
-		)
+		))
 }
 
 func RawInfoModal(id, title, description, extra string, isOpenAsar bool) g.Widget {
-	isDynamic := strings.HasPrefix(id, "#modal") && extra != ""
-	return g.Style().
+
+	return fitPopup(g.Style().
 		SetStyle(g.StyleVarWindowPadding, 30, 30).
 		SetStyleFloat(g.StyleVarWindowRounding, 12).
 		To(
 			g.PopupModal(id).
-				Flags(g.WindowFlagsNoTitleBar|Ternary(isDynamic, g.WindowFlagsAlwaysAutoResize, 0)).
+				Flags(g.WindowFlagsNoTitleBar|g.WindowFlagsAlwaysAutoResize).
 				Layout(
 					g.Style().SetFontSize(30).To(
 						uiParagraph(title),
@@ -361,7 +362,7 @@ func RawInfoModal(id, title, description, extra string, isOpenAsar bool) g.Widge
 						return g.Column(
 							g.Dummy(0, 10),
 							g.Style().SetFontSize(20).To(
-								g.Label(uiText(extra)).Wrapped(true),
+								uiParagraph(extra),
 							),
 						)
 					}, nil},
@@ -411,11 +412,11 @@ func RawInfoModal(id, title, description, extra string, isOpenAsar bool) g.Widge
 						},
 					},
 				),
-		)
+		))
 }
 
 func UpdateModal() g.Widget {
-	return g.Style().
+	return fitPopup(g.Style().
 		SetStyle(g.StyleVarWindowPadding, 30, 30).
 		SetStyleFloat(g.StyleVarWindowRounding, 12).
 		To(
@@ -463,7 +464,7 @@ func UpdateModal() g.Widget {
 						),
 					),
 				),
-		)
+		))
 }
 
 func ShowModal(title, desc, extra string) {
@@ -698,22 +699,42 @@ func renderErrorCard(bgColor color.Color, textColor color.Color, message string,
 			height = requiredHeight
 		}
 	}
-	message = uiText(message)
+	var content g.Widget
+	if uiArabic && bgColor == DiscordYellow {
+		content = uiParagraph(message)
+	} else {
+		message = uiText(message)
+		content = g.Markdown(&message)
+	}
 	return g.Style().
 		SetColor(g.StyleColorChildBg, bgColor).
 		SetStyleFloat(g.StyleVarAlpha, 0.9).
 		SetStyle(g.StyleVarWindowPadding, 10, 10).
 		SetStyleFloat(g.StyleVarChildRounding, 5).
 		To(
-			g.Child().
-				Size(g.Auto, height).
-				Layout(
-					g.Row(
-						g.Style().SetColor(g.StyleColorText, textColor).To(
-							g.Markdown(&message),
+			g.Custom(func() {
+				cardHeight := height
+				if uiArabic && bgColor == DiscordYellow {
+					width, _ := g.GetAvailableRegion()
+					lines := wrapUIText(translatedUI(message), width-20, func(text string) float32 {
+						w, _ := g.CalcTextSize(visualArabic(text))
+						return w
+					})
+					needed := float32(len(lines))*imgui.TextLineHeightWithSpacing() + 24
+					if needed > cardHeight {
+						cardHeight = needed
+					}
+				}
+				g.Child().
+					Size(g.Auto, cardHeight).
+					Layout(
+						g.Row(
+							g.Style().SetColor(g.StyleColorText, textColor).To(
+								content,
+							),
 						),
-					),
-				),
+					).Build()
+			}),
 		)
 }
 
@@ -734,13 +755,7 @@ func loop() {
 			}},
 		).
 		Layout(
-			g.AlignManually(g.AlignRight,
-				g.Row(
-					g.Button(visualArabic("العربية")).Size(110, 36).OnClick(func() { setUILanguage(true) }),
-					g.Button("English").Size(110, 36).OnClick(func() { setUILanguage(false) }),
-				),
-				228, false,
-			),
+			g.AlignManually(g.AlignRight, languageButton, 112, false),
 			g.Dummy(0, 12),
 			g.Align(g.AlignCenter).To(
 				g.Style().SetFontSize(40).To(
