@@ -25,6 +25,9 @@ func warningWithLink(text string) g.Widget {
 				g.SetCursorPos(image.Pt(start.X+int(available-width-16), start.Y))
 			}
 			g.Style().SetColor(g.StyleColorButton, color.RGBA{}).
+				SetColor(g.StyleColorButtonHovered, color.RGBA{}).
+				SetColor(g.StyleColorButtonActive, color.RGBA{}).
+				SetStyleFloat(g.StyleVarFrameBorderSize, 0).
 				SetColor(g.StyleColorText, color.RGBA{0, 62, 125, 255}).
 				SetStyle(g.StyleVarFramePadding, 8, 4).
 				To(g.Button("vencordar.com").OnClick(func() { g.OpenURL("https://vencordar.com") })).Build()

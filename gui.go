@@ -547,13 +547,14 @@ func renderInstaller() g.Widget {
 					text = "Discord"
 				}
 
-				return g.Row(
+				widgets := []g.Widget{
 					g.RadioButton(uiText(text), radioIdx == i).OnChange(makeRadioOnChange(i)),
-					g.Style().SetColor(g.StyleColorText, color.RGBA{0xff, 0xff, 0xff, 0x80}).To(g.Label(uiText(" "+d.path))),
-					&CondWidget{d.isPatched, func() g.Widget {
-						return g.Label(uiText(" (Vencord Arab Installed)"))
-					}, nil},
-				)
+					g.Style().SetColor(g.StyleColorText, color.RGBA{0xff, 0xff, 0xff, 0x80}).To(g.Label(uiText(" " + d.path))),
+				}
+				if d.isPatched {
+					widgets = append(widgets, g.Label(uiText(" (Vencord Arab Installed)")))
+				}
+				return g.Column(g.Row(widgets...))
 			}),
 			&CondWidget{showCustomLocation, func() g.Widget {
 				return g.RadioButton(uiText("Custom Install Location"), radioIdx == customChoiceIdx).OnChange(makeRadioOnChange(customChoiceIdx))
@@ -754,7 +755,9 @@ func loop() {
 			}},
 		).
 		Layout(
-			g.AlignManually(g.AlignRight, languageButton, 80, false),
+			g.AlignManually(g.AlignRight,
+				g.Style().SetStyleFloat(g.StyleVarFrameRounding, 12).
+					SetStyleFloat(g.StyleVarFrameBorderSize, 0).To(languageButton), 80, false),
 			g.Dummy(0, 12),
 			g.Align(g.AlignCenter).To(
 				g.Style().SetFontSize(40).To(

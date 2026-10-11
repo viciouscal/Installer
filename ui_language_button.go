@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"image"
 	"image/png"
+	"math"
 
 	g "github.com/AllenDang/giu"
 	"github.com/AllenDang/imgui-go"
@@ -39,10 +40,20 @@ func makeLanguageButton() {
 	for y := 0; y < bounds.Dy(); y++ {
 		for x := 0; x < bounds.Dx(); x++ {
 			if x*bounds.Dy()+y*bounds.Dx() < bounds.Dx()*bounds.Dy() {
-				icon.SetRGBA(x, y, usImage.RGBAAt(x, y))
-			} else {
 				icon.SetRGBA(x, y, saImage.RGBAAt(x, y))
+			} else {
+				icon.SetRGBA(x, y, usImage.RGBAAt(x, y))
 			}
+			px, py := float64(x)+0.5, float64(y)+0.5
+			cx := math.Max(10, math.Min(float64(bounds.Dx())-10, px))
+			cy := math.Max(10, math.Min(float64(bounds.Dy())-10, py))
+			coverage := math.Max(0, math.Min(1, 10.5-math.Hypot(px-cx, py-cy)))
+			pixel := icon.RGBAAt(x, y)
+			pixel.R = uint8(float64(pixel.R) * coverage)
+			pixel.G = uint8(float64(pixel.G) * coverage)
+			pixel.B = uint8(float64(pixel.B) * coverage)
+			pixel.A = uint8(float64(pixel.A) * coverage)
+			icon.SetRGBA(x, y, pixel)
 		}
 	}
 	languageButton = g.ImageButtonWithRgba(icon).Size(72, 40).FramePadding(4).OnClick(func() { setUILanguage(!uiArabic) })
