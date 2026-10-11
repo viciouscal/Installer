@@ -27,8 +27,8 @@ ifeq ($(GUI),0)
 LDFLAGS 	+= -extldflags=-static
 else
 LDFLAGS 	+= -H=windowsgui -extldflags=-static
-endif # GUI
-endif # PLATFORM
+endif
+endif
 
 ifeq ($(GUI),0)
 TAGS 		+= cli
@@ -37,8 +37,8 @@ else
 CGO 		:= 1
 ifeq ($(WAYLAND),1)
 TAGS 		+= wayland
-endif # WAYLAND
-endif # GUI
+endif
+endif
 
 MACOS_ARCHS := $(ARCH)
 ifeq ($(ARCH),universal)
@@ -68,7 +68,7 @@ ifeq ($(ARCH),universal)
 		build/installer-arm64 \
 		-output build/installer-universal
 	rm build/installer-amd64 build/installer-arm64
-endif # ARCH
+endif
 ifeq ($(GUI),1)
 	cp -R macos/VencordInstaller.app build/VencordInstaller.app
 	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(VERSION)" build/VencordInstaller.app/Contents/Info.plist
@@ -77,7 +77,7 @@ ifeq ($(ARCH),universal)
 	mv build/installer-universal build/VencordInstaller.app/Contents/MacOS/VencordInstaller
 else
 	mv build/installer-$(ARCH) build/VencordInstaller.app/Contents/MacOS/VencordInstaller
-endif # ARCH
+endif
 	codesign --deep --force --options runtime --sign "$(IDENTITY)" build/VencordInstaller.app
 ifeq ($(DMG),1)
 ifeq ($(shell command -v create-dmg 2>/dev/null),)
@@ -95,12 +95,12 @@ endif
 		--app-drop-link 350 155 \
 		build/VencordInstaller.dmg \
 		build/VencordInstaller.app
-endif # DMG
-else # GUI
+endif
+else
 	mv build/installer-$(ARCH) build/VencordInstallerCli-$(PLATFORM)
-endif # GUI
+endif
 
-else ifeq ($(PLATFORM),windows) # PLATFORM
+else ifeq ($(PLATFORM),windows)
 	export GOROOT=/mingw64/lib/go
 	export GOPATH=/mingw64
 
@@ -110,7 +110,7 @@ else ifeq ($(PLATFORM),windows) # PLATFORM
 		-ldflags "$(LDFLAGS)" \
 		-o build/VencordInstaller$(POSTFIX).exe
 
-else # PLATFORM
+else
 	CGO_ENABLED=$(CGO) GOOS=$(PLATFORM) GOARCH=$(ARCH) go build \
 		-v \
 		-tags "$(TAGS)" \
