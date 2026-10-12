@@ -1,26 +1,38 @@
-# Based partially on Alyxia's work, thanks so much!
 
 name: Release
 on:
+  workflow_dispatch:
+  pull_request:
   push:
+    branches:
+      - 'fix/**'
     tags:
       - v*
+
 env:
-  FORCE_COLOR: true
+  VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'Unknown' }}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: installer-build-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build-linux:
     runs-on: ubuntu-latest
+
     steps:
       - name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: "1.20"
+          go-version: "1.26"
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: |
             ~/.cache/go-build
@@ -29,32 +41,35 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Install Go dependencies
-        run: go get -v
+      - name: Test release fetching
+        env:
+          VENCORD_USER_DATA_DIR: ${{ runner.temp }}/vencord-test
+        run: go test -race -tags cli ./...
 
       - name: Build Cli
-        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -tags "static cli" -ldflags "-s -w -X 'vencordinstaller/buildinfo.InstallerGitHash=$(git rev-parse --short HEAD)' -X 'vencordinstaller/buildinfo.InstallerTag=${{ github.ref_name }}'" -o VencordInstallerCli-linux
-
-      - name: Update executable
-        run: |
-          chmod +x VencordInstallerCli-linux
+        run: make VERSION="${VERSION}"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: VencordInstaller-linux
-          path: |
-            VencordInstallerCli-linux
-
+          path: build/*
 
   build-mac:
     runs-on: macos-latest
+    env:
+      APPLE_SIGNING_CERT: ${{ secrets.APPLE_SIGNING_CERT }}
+      APPLE_SIGNING_CERT_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
+      APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY_NAME }}
+      APPLE_ID_EMAIL: ${{ secrets.APPLE_ID_EMAIL }}
+      APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+      APPLE_ID_TEAM: ${{ secrets.APPLE_ID_TEAM }}
 
     steps:
       - name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: "1.20"
+          go-version: "1.26"
 
       - id: go-cache-paths
         run: |
@@ -62,9 +77,9 @@ jobs:
           echo "go_mod=$(go env GOMODCACHE)" >> $GITHUB_ENV
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: |
             ~/Library/Caches/go-build
@@ -74,47 +89,64 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Install dependencies
-        run: brew install pkg-config sdl2
+        run: brew install pkg-config sdl2 create-dmg
 
-      - name: Install Go dependencies
-        run: go get -v
+      - name: Configure macOS signing
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* && -n "$APPLE_SIGNING_CERT" && -n "$APPLE_SIGNING_CERT_PASSWORD" && -n "$APPLE_IDENTITY" ]]; then
+            echo "SIGN_MACOS=true" >> "$GITHUB_ENV"
+          else
+            echo "SIGN_MACOS=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Setup Certificates
+        if: env.SIGN_MACOS == 'true'
+        uses: apple-actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466
+        with:
+          p12-file-base64: ${{ secrets.APPLE_SIGNING_CERT }}
+          p12-password: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
 
       - name: Build
-        run: CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -v -tags static -ldflags "-s -w -X 'vencordinstaller/buildinfo.InstallerGitHash=$(git rev-parse --short HEAD)' -X 'vencordinstaller/buildinfo.InstallerTag=${{ github.ref_name }}'" -o VencordInstaller
-
-      - name: Update executable
+        env:
+          APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY_NAME }}
         run: |
-          chmod +x VencordInstaller
+          make ARCH=universal VERSION="${VERSION}"
+          identity="-"
+          if [ "$SIGN_MACOS" = "true" ]; then identity="$APPLE_IDENTITY"; fi
+          make ARCH=universal GUI=1 DMG=1 IDENTITY="$identity" VERSION="${VERSION}"
 
-      - name: Generate MacOS bundle
+      - name: Notarize macOS build
+        if: env.SIGN_MACOS == 'true' && env.APPLE_ID_EMAIL != '' && env.APPLE_ID_PASSWORD != '' && env.APPLE_ID_TEAM != ''
         run: |
-          mkdir -p VencordInstaller.app/Contents/MacOS
-          mkdir -p VencordInstaller.app/Contents/Resources
-          cp macos/Info.plist VencordInstaller.app/Contents/Info.plist
-          mv VencordInstaller VencordInstaller.app/Contents/MacOS/VencordInstaller
-          cp macos/icon.icns VencordInstaller.app/Contents/Resources/icon.icns
-          zip -r VencordInstaller.MacOS.zip VencordInstaller.app
+          xcrun notarytool submit build/VencordInstaller.dmg --apple-id "$APPLE_ID_EMAIL" --password "$APPLE_ID_PASSWORD" --team-id "$APPLE_ID_TEAM" --wait
+          xcrun stapler staple build/VencordInstaller.dmg
+          xcrun stapler staple build/VencordInstaller.app
+
+      - name: Package compatible macOS zip
+        run: ditto -c -k --sequesterRsrc --keepParent build/VencordInstaller.app build/VencordInstaller.MacOS.zip
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: VencordInstaller-macos
-          path: VencordInstaller.MacOS.zip
-
+          path: |
+            build/VencordInstaller.dmg
+            build/VencordInstaller.MacOS.zip
+            build/VencordInstallerCli-darwin
 
   build-windows:
     runs-on: windows-latest
 
     steps:
       - name: Install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: "1.20"
+          go-version: "1.26"
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: |
             ~\AppData\Local\go-build
@@ -124,14 +156,12 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Setup MSYS2
-        uses: msys2/setup-msys2@v2
+        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884
 
       - name: Install Windows dependencies
         shell: msys2 {0}
         run: |
-          pacman -S --noconfirm git mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2 mingw-w64-x86_64-go
-          export GOROOT=/mingw64/lib/go
-          export GOPATH=/mingw64
+          pacman -S --noconfirm git mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2 mingw-w64-x86_64-go make
 
       - name: Install Go dependencies
         shell: msys2 {0}
@@ -139,65 +169,68 @@ jobs:
           export GOROOT=/mingw64/lib/go
           export GOPATH=/mingw64
           go get -v
-          go install github.com/tc-hib/go-winres@latest
+          go install github.com/tc-hib/go-winres@d743268d7ea168077ddd443c4240562d4f5e8c3e
 
-      - name: Build Gui
+      - name: Build
         shell: msys2 {0}
         run: |
-          export GOROOT=/mingw64/lib/go
-          export GOPATH=/mingw64
-          go-winres make --product-version "git-tag"
-          CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -v -tags static -ldflags "-s -w -H=windowsgui -extldflags=-static -X 'vencordinstaller/buildinfo.InstallerGitHash=$(git rev-parse --short HEAD)' -X 'vencordinstaller/buildinfo.InstallerTag=${{ github.ref_name }}'" -o VencordInstaller.exe
-
-      - name: Build i386 Cli
-        shell: msys2 {0}
-        run: |
-          export GOROOT=/mingw64/lib/go
-          export GOPATH=/mingw64
-          CGO_ENABLED=0 GOOS=windows GOARCH=386 go build -v -tags "static cli" -ldflags "-s -w -extldflags=-static -X 'vencordinstaller/buildinfo.InstallerGitHash=$(git rev-parse --short HEAD)' -X 'vencordinstaller/buildinfo.InstallerTag=${{ github.ref_name }}'" -o VencordInstallerCli.exe
+          make GUI=1 VERSION="${VERSION}"
+          make ARCH=386 VERSION="${VERSION}"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: VencordInstaller-windows
-          path: |
-            VencordInstaller.exe
-            VencordInstallerCli.exe
-
+          path: build/*.exe
 
   release:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: [build-linux, build-mac, build-windows]
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: VencordInstaller-linux
-          path: linux
+          path: build-linux
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: VencordInstaller-macos
-          path: macos
+          path: build-macos
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: VencordInstaller-windows
-          path: windows
+          path: build-windows
+
+      - name: Refuse to overwrite an existing release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          status=$(curl --silent --show-error --output /tmp/existing-release.json --write-out '%{http_code}' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}")
+          if [ "$status" != "404" ]; then
+            echo "Refusing to publish: expected a new release tag (HTTP $status)."
+            exit 1
+          fi
 
       - name: Create the release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: ${{ github.ref_name }}
-          tag_name: ${{ github.ref_name }}
+          name: ${{ env.VERSION }}
           prerelease: false
-          draft: false
+          draft: true
           files: |
-            linux/VencordInstallerCli-linux
-            macos/VencordInstaller.MacOS.zip
-            windows/VencordInstalle*.exe
+            build-linux/*
+            build-macos/*
+            build-windows/*

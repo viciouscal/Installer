@@ -1,6 +1,5 @@
 /*
  * SPDX-License-Identifier: GPL-3.0
- * Vencord Installer, a cross platform gui/cli app for installing Vencord
  * Copyright (c) 2023 Vendicated and Vencord contributors
  */
 
@@ -44,26 +43,40 @@ func init() {
 }
 
 type DiscordInstall struct {
-	path             string // the base path
-	branch           string // canary / stable / ...
-	appPath          string // List of app folder to patch
+	path             string
+	branch           string
+	appPath          string
 	isPatched        bool
 	isFlatpak        bool
-	isSystemElectron bool // Needs special care https://aur.archlinux.org/packages/discord_arch_electron
+	isSystemElectron bool
 	isOpenAsar       *bool
 }
-
-//region Patch
 
 func patchAppAsar(dir string, isSystemElectron bool) (err error) {
 	appAsar := path.Join(dir, "app.asar")
 	_appAsar := path.Join(dir, "_app.asar")
 
+	stage, err := os.MkdirTemp(dir, ".VencordAR-patch-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(stage)
+	stagedAsar := path.Join(stage, "app.asar")
+	if err = WriteAppAsar(stagedAsar, Patcher); err != nil {
+		return err
+	}
+	if _, err = os.Lstat(_appAsar); err == nil {
+		return errors.New("Original app.asar backup already exists: " + _appAsar)
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+
 	var renamesDone [][]string
 	defer func() {
 		if err != nil && len(renamesDone) > 0 {
 			Log.Error("Failed to patch. Undoing partial patch")
-			for _, rename := range renamesDone {
+			for i := len(renamesDone) - 1; i >= 0; i-- {
+				rename := renamesDone[i]
 				if innerErr := os.Rename(rename[1], rename[0]); innerErr != nil {
 					Log.Error("Failed to undo partial patch. This install is probably bricked.", innerErr)
 				} else {
@@ -92,7 +105,7 @@ func patchAppAsar(dir string, isSystemElectron bool) (err error) {
 	}
 
 	Log.Debug("Writing custom app.asar to", appAsar)
-	if err := WriteAppAsar(appAsar, Patcher); err != nil {
+	if err := os.Rename(stagedAsar, appAsar); err != nil {
 		return err
 	}
 
@@ -103,7 +116,7 @@ func (di *DiscordInstall) patch() error {
 	Log.Info("Patching " + di.path + "...")
 	if LatestHash != InstalledHash {
 		if err := InstallLatestBuilds(); err != nil {
-			return nil // already shown dialog so don't return same error again
+			return nil
 		}
 	}
 
@@ -156,7 +169,7 @@ func (di *DiscordInstall) patch() error {
 
 		var err error
 		if !isSystemFlatpak && os.Getuid() == 0 {
-			// We are operating on a user flatpak but are root
+
 			actualUser := os.Getenv("SUDO_USER")
 			Log.Debug("This is a user install but we are root. Using su to run as", actualUser)
 			cmd := exec.Command("su", "-", actualUser, "-c", "sh", "-c", fullCmd)
@@ -176,20 +189,22 @@ func (di *DiscordInstall) patch() error {
 	return nil
 }
 
-//endregion
-
-// region Unpatch
-
 func unpatchAppAsar(dir string, isSystemElectron bool) (errOut error) {
 	appAsar := path.Join(dir, "app.asar")
 	appAsarTmp := path.Join(dir, "app.asar.tmp")
 	_appAsar := path.Join(dir, "_app.asar")
+	if _, err := os.Lstat(appAsarTmp); err == nil {
+		return errors.New("Temporary app.asar backup already exists: " + appAsarTmp)
+	} else if !os.IsNotExist(err) {
+		return err
+	}
 
 	var renamesDone [][]string
 	defer func() {
 		if errOut != nil && len(renamesDone) > 0 {
 			Log.Error("Failed to unpatch. Undoing partial unpatch")
-			for _, rename := range renamesDone {
+			for i := len(renamesDone) - 1; i >= 0; i-- {
+				rename := renamesDone[i]
 				if innerErr := os.Rename(rename[1], rename[0]); innerErr != nil {
 					Log.Error("Failed to undo partial unpatch. This install is probably bricked.", innerErr)
 				} else {
@@ -207,7 +222,7 @@ func unpatchAppAsar(dir string, isSystemElectron bool) (errOut error) {
 	if err := os.Rename(appAsar, appAsarTmp); err != nil {
 		err = CheckIfErrIsCauseItsBusyRn(err)
 		Log.Error(err.Error())
-		errOut = err
+		return err
 	} else {
 		renamesDone = append(renamesDone, []string{appAsar, appAsarTmp})
 	}
@@ -216,7 +231,7 @@ func unpatchAppAsar(dir string, isSystemElectron bool) (errOut error) {
 	if err := os.Rename(_appAsar, appAsar); err != nil {
 		err = CheckIfErrIsCauseItsBusyRn(err)
 		Log.Error(err.Error())
-		errOut = err
+		return err
 	} else {
 		renamesDone = append(renamesDone, []string{_appAsar, appAsar})
 	}
@@ -225,7 +240,7 @@ func unpatchAppAsar(dir string, isSystemElectron bool) (errOut error) {
 		Log.Debug("Renaming", _appAsar+".unpacked", "to", appAsar+".unpacked")
 		if err := os.Rename(_appAsar+".unpacked", appAsar+".unpacked"); err != nil {
 			Log.Error(err.Error())
-			errOut = err
+			return err
 		}
 	}
 	return
@@ -250,5 +265,3 @@ func (di *DiscordInstall) unpatch() error {
 	di.isPatched = false
 	return nil
 }
-
-//endregion

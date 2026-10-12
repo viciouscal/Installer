@@ -1,6 +1,5 @@
 /*
  * SPDX-License-Identifier: GPL-3.0
- * Vencord Installer, a cross platform gui/cli app for installing Vencord
  * Copyright (c) 2023 Vendicated and Vencord contributors
  */
 
@@ -22,8 +21,7 @@ var (
 )
 
 func init() {
-	// If ran as root, the HOME environment variable will be that of root.
-	// SUDO_USER and DOAS_USER tell us the actual user
+
 	var sudoUser = os.Getenv("SUDO_USER")
 	if sudoUser == "" {
 		sudoUser = os.Getenv("DOAS_USER")
@@ -33,10 +31,10 @@ func init() {
 	}
 	if sudoUser != "" {
 		if sudoUser == "root" {
-			panic("VencordInstaller must not be run as the root user. Please rerun as normal user. Use sudo or doas to run as root.")
+			panic("VencordARInstaller must not be run as the root user. Please rerun as normal user. Use sudo or doas to run as root.")
 		}
 
-		Log.Debug("VencordInstaller was run with root privileges, actual user is", sudoUser)
+		Log.Debug("VencordARInstaller was run with root privileges, actual user is", sudoUser)
 		Log.Debug("Looking up HOME of", sudoUser)
 
 		u, err := user.Lookup(sudoUser)
@@ -47,7 +45,7 @@ func init() {
 			_ = os.Setenv("HOME", u.HomeDir)
 		}
 	} else if os.Getuid() == 0 {
-		panic("VencordInstaller was run as root but neither SUDO_USER nor DOAS_USER are set. Please rerun me as a normal user, with sudo/doas, or manually set SUDO_USER to your username")
+		panic("VencordARInstaller was run as root but neither SUDO_USER nor DOAS_USER are set. Please rerun me as a normal user, with sudo/doas, or manually set SUDO_USER to your username")
 	}
 	Home = os.Getenv("HOME")
 
@@ -62,14 +60,57 @@ func init() {
 	}
 }
 
+func ParseDiscordNew(p, branch string, isFlatpak bool) *DiscordInstall {
+	entries, err := os.ReadDir(p)
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			Log.Warn("Error during readdir "+p+":", err)
+		}
+		return nil
+	}
+
+	isPatched := false
+	appPath := ""
+	for _, dir := range entries {
+		if dir.IsDir() && strings.HasPrefix(dir.Name(), "app-") {
+			resources := path.Join(p, dir.Name(), "resources")
+			if !ExistsFile(resources) {
+				continue
+			}
+			app := path.Join(resources, "app")
+			if app > appPath {
+				appPath = app
+				isPatched = ExistsFile(path.Join(resources, "_app.asar"))
+			}
+		}
+	}
+
+	if appPath == "" {
+		return nil
+	}
+
+	if branch == "" {
+		branch = GetBranch(p)
+	}
+
+	return &DiscordInstall{
+		path:             p,
+		branch:           branch,
+		appPath:          appPath,
+		isPatched:        isPatched,
+		isFlatpak:        isFlatpak,
+		isSystemElectron: false,
+	}
+}
+
 func ParseDiscord(p, _ string) *DiscordInstall {
 	name := path.Base(p)
 
 	needsFlatpakResolve := strings.Contains(p, "/flatpak/") && !strings.Contains(p, "/current/active/files/")
 	if needsFlatpakResolve {
 		discordName := strings.ToLower(name[len("com.discordapp."):])
-		if discordName != "discord" { //
-			// DiscordCanary -> discord-canary
+		if discordName != "discord" {
+
 			discordName = discordName[:7] + "-" + discordName[7:]
 		}
 		p = path.Join(p, "current/active/files", discordName)
@@ -80,13 +121,13 @@ func ParseDiscord(p, _ string) *DiscordInstall {
 
 	isPatched, isSystemElectron := false, false
 
-	if ExistsFile(resources) { // normal install
+	if ExistsFile(resources) {
 		isPatched = ExistsFile(path.Join(resources, "_app.asar"))
-	} else if ExistsFile(path.Join(p, "app.asar")) { // System electron doesn't have resources folder
+	} else if ExistsFile(path.Join(p, "app.asar")) {
 		isSystemElectron = true
 		isPatched = ExistsFile(path.Join(p, "_app.asar.unpacked"))
 	} else {
-		Log.Warn("Tried to parse invalid Location:", p)
+
 		return nil
 	}
 
@@ -125,12 +166,33 @@ func FindDiscords() []any {
 		}
 	}
 
+	for _, name := range []string{"discord", "discordcanary", "discordptb"} {
+		discordDir := path.Join(Home, ".config", name)
+		if !ExistsFile(discordDir) {
+			continue
+		}
+		if discord := ParseDiscordNew(discordDir, GetBranch(name), false); discord != nil {
+			Log.Debug("Found Discord install at ", discordDir)
+			discords = append(discords, discord)
+		}
+	}
+
+	for _, name := range []string{"Discord", "DiscordCanary", "DiscordPTB"} {
+		discordDir := path.Join(Home, ".var/app", "com.discordapp."+name, "config/discord")
+		if !ExistsFile(discordDir) {
+			continue
+		}
+		if discord := ParseDiscordNew(discordDir, GetBranch(name), true); discord != nil {
+			Log.Debug("Found Discord install at ", discordDir)
+			discords = append(discords, discord)
+		}
+	}
+
 	return discords
 }
 
 func PreparePatch(di *DiscordInstall) {}
 
-// FixOwnership fixes file ownership on Linux
 func FixOwnership(p string) error {
 	if os.Geteuid() != 0 {
 		return nil
@@ -150,7 +212,7 @@ func FixOwnership(p string) error {
 		return err
 	}
 	Log.Debug("Lookup successful, Uid", u.Uid, "Gid", u.Gid)
-	// This conversion is safe because of the GOOS guard above
+
 	uid, _ := strconv.Atoi(u.Uid)
 	gid, _ := strconv.Atoi(u.Gid)
 

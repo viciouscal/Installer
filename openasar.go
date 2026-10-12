@@ -1,6 +1,5 @@
 /*
  * SPDX-License-Identifier: GPL-3.0
- * Vencord Installer, a cross platform gui/cli app for installing Vencord
  * Copyright (c) 2023 Vendicated and Vencord contributors
  */
 
@@ -9,11 +8,10 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
-	"net/http"
 	"os"
 	path "path/filepath"
-	"strconv"
 )
 
 const OpenAsarDownloadLink = "https://github.com/GooseMod/OpenAsar/releases/download/nightly/app.asar"
@@ -73,23 +71,28 @@ func (di *DiscordInstall) InstallOpenAsar() error {
 	}
 	_ = asarFile.Close()
 
-	if err = os.Rename(asarFile.Name(), path.Join(dir, "app.asar.backup")); err != nil {
-		return err
-	}
-
-	res, err := http.Get(OpenAsarDownloadLink)
-	if err != nil {
-		return err
-	} else if res.StatusCode >= 300 {
-		return errors.New("Failed to fetch OpenAsar - " + strconv.Itoa(res.StatusCode) + ": " + res.Status)
-	}
-
-	outFile, err := os.Create(asarFile.Name())
+	stage, err := os.MkdirTemp(dir, ".OpenAsar-download-")
 	if err != nil {
 		return err
 	}
-
-	if _, err = io.Copy(outFile, res.Body); err != nil {
+	defer os.RemoveAll(stage)
+	stagedAsar := path.Join(stage, "app.asar")
+	if err = downloadFile(OpenAsarDownloadLink, stagedAsar, 0644); err != nil {
+		return err
+	}
+	backup := path.Join(dir, "app.asar.backup")
+	if _, err = os.Lstat(backup); err == nil {
+		return errors.New("An app.asar backup already exists. Restore it before installing OpenAsar")
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	if err = os.Rename(asarFile.Name(), backup); err != nil {
+		return err
+	}
+	if err = os.Rename(stagedAsar, asarFile.Name()); err != nil {
+		if restoreErr := os.Rename(backup, asarFile.Name()); restoreErr != nil {
+			return fmt.Errorf("Install failed: %w; restore failed: %v; backup: %s", err, restoreErr, backup)
+		}
 		return err
 	}
 
@@ -101,8 +104,7 @@ func (di *DiscordInstall) UninstallOpenAsar() error {
 	PreparePatch(di)
 
 	dir := path.Join(di.appPath, "..")
-	// .original is our old name
-	// OpenAsar's updater uses .backup, so we now also use that - .original is deprecated
+
 	for _, file := range []string{path.Join(dir, "app.asar.backup"), path.Join(dir, "app.asar.original")} {
 		if !ExistsFile(file) {
 			continue
@@ -114,10 +116,28 @@ func (di *DiscordInstall) UninstallOpenAsar() error {
 		}
 		_ = asarFile.Close()
 
+		stage, err := os.MkdirTemp(dir, ".OpenAsar-restore-")
+		if err != nil {
+			return err
+		}
+		defer func() {
+			if ExistsFile(path.Join(stage, "app.asar")) {
+				return
+			}
+			os.RemoveAll(stage)
+		}()
+		saved := path.Join(stage, "app.asar")
+		if err = os.Rename(asarFile.Name(), saved); err != nil {
+			return err
+		}
 		if err = os.Rename(file, asarFile.Name()); err != nil {
+			if restoreErr := os.Rename(saved, asarFile.Name()); restoreErr != nil {
+				return fmt.Errorf("Restore failed: %w; rollback failed: %v; backup: %s", err, restoreErr, saved)
+			}
 			return err
 		}
 
+		_ = os.Remove(saved)
 		di.isOpenAsar = Ptr(false)
 		return nil
 	}

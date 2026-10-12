@@ -1,0 +1,6 @@
+IBM Plex Sans Arabic Bold: supplied font, distributed under IBMPlex-LICENSE.txt.
+Arabic joining table: derived from Unicode 15.0 UnicodeData.txt.
+Unicode data source: https://www.unicode.org/Public/15.0.0/ucd/UnicodeData.txt
+Unicode data license: Unicode-LICENSE.txt.
+Flag image sources: https://flagcdn.com/w320/sa.png and https://flagcdn.com/w320/us.png
+IBM Plex Sans Bold: https://github.com/IBM/plex/tree/master/packages/plex-sans/fonts/complete/ttf ; IBMPlexSans-LICENSE.txt.
