@@ -71,5 +71,8 @@ func WriteAppAsar(outFile string, patcherPath string) error {
 		}
 	}
 
-	return nil
+	if err = f.Sync(); err != nil {
+		return err
+	}
+	return f.Close()
 }

@@ -146,7 +146,11 @@ func handleUnpatch() {
 }
 
 func handleOpenAsar() {
-	if acceptedOpenAsar || getChosenInstall().IsOpenAsar() {
+	choice := getChosenInstall()
+	if choice == nil {
+		return
+	}
+	if acceptedOpenAsar || choice.IsOpenAsar() {
 		handleOpenAsarConfirmed()
 		return
 	}
@@ -617,7 +621,7 @@ func renderInstaller() g.Widget {
 					SetColor(g.StyleColorButton, DiscordGreen).
 					SetColor(g.StyleColorButtonHovered, DiscordGreenHovered).
 					SetStyle(g.StyleVarFrameRounding, 8, 8).
-					SetDisabled(GithubError != nil).
+					SetDisabled(!GithubFinished.Load() || GithubError != nil).
 					To(
 						g.Button(uiText("Install")).
 							OnClick(handlePatch).
@@ -628,7 +632,7 @@ func renderInstaller() g.Widget {
 					SetColor(g.StyleColorButton, DiscordBlue).
 					SetColor(g.StyleColorButtonHovered, DiscordBlueHovered).
 					SetStyle(g.StyleVarFrameRounding, 8, 8).
-					SetDisabled(GithubError != nil).
+					SetDisabled(!GithubFinished.Load() || GithubError != nil).
 					To(
 						g.Button(uiText("Reinstall / Repair")).
 							OnClick(func() {
@@ -765,7 +769,7 @@ func loop() {
 			g.Dummy(0, 40),
 
 			&CondWidget{
-				GithubError != nil,
+				GithubFinished.Load() && GithubError != nil,
 				func() g.Widget {
 					return g.Style().SetFont(uiFont(20)).To(renderErrorCard(DiscordRed, color.White, "Failed to fetch Info from GitHub. If this issue persists, visit https://github.com/viciouscal/Installer/issues for help.", 40))
 				},

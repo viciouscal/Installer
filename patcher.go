@@ -56,11 +56,27 @@ func patchAppAsar(dir string, isSystemElectron bool) (err error) {
 	appAsar := path.Join(dir, "app.asar")
 	_appAsar := path.Join(dir, "_app.asar")
 
+	stage, err := os.MkdirTemp(dir, ".VencordAR-patch-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(stage)
+	stagedAsar := path.Join(stage, "app.asar")
+	if err = WriteAppAsar(stagedAsar, Patcher); err != nil {
+		return err
+	}
+	if _, err = os.Lstat(_appAsar); err == nil {
+		return errors.New("Original app.asar backup already exists: " + _appAsar)
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+
 	var renamesDone [][]string
 	defer func() {
 		if err != nil && len(renamesDone) > 0 {
 			Log.Error("Failed to patch. Undoing partial patch")
-			for _, rename := range renamesDone {
+			for i := len(renamesDone) - 1; i >= 0; i-- {
+				rename := renamesDone[i]
 				if innerErr := os.Rename(rename[1], rename[0]); innerErr != nil {
 					Log.Error("Failed to undo partial patch. This install is probably bricked.", innerErr)
 				} else {
@@ -89,7 +105,7 @@ func patchAppAsar(dir string, isSystemElectron bool) (err error) {
 	}
 
 	Log.Debug("Writing custom app.asar to", appAsar)
-	if err := WriteAppAsar(appAsar, Patcher); err != nil {
+	if err := os.Rename(stagedAsar, appAsar); err != nil {
 		return err
 	}
 
@@ -177,12 +193,18 @@ func unpatchAppAsar(dir string, isSystemElectron bool) (errOut error) {
 	appAsar := path.Join(dir, "app.asar")
 	appAsarTmp := path.Join(dir, "app.asar.tmp")
 	_appAsar := path.Join(dir, "_app.asar")
+	if _, err := os.Lstat(appAsarTmp); err == nil {
+		return errors.New("Temporary app.asar backup already exists: " + appAsarTmp)
+	} else if !os.IsNotExist(err) {
+		return err
+	}
 
 	var renamesDone [][]string
 	defer func() {
 		if errOut != nil && len(renamesDone) > 0 {
 			Log.Error("Failed to unpatch. Undoing partial unpatch")
-			for _, rename := range renamesDone {
+			for i := len(renamesDone) - 1; i >= 0; i-- {
+				rename := renamesDone[i]
 				if innerErr := os.Rename(rename[1], rename[0]); innerErr != nil {
 					Log.Error("Failed to undo partial unpatch. This install is probably bricked.", innerErr)
 				} else {
@@ -200,7 +222,7 @@ func unpatchAppAsar(dir string, isSystemElectron bool) (errOut error) {
 	if err := os.Rename(appAsar, appAsarTmp); err != nil {
 		err = CheckIfErrIsCauseItsBusyRn(err)
 		Log.Error(err.Error())
-		errOut = err
+		return err
 	} else {
 		renamesDone = append(renamesDone, []string{appAsar, appAsarTmp})
 	}
@@ -209,7 +231,7 @@ func unpatchAppAsar(dir string, isSystemElectron bool) (errOut error) {
 	if err := os.Rename(_appAsar, appAsar); err != nil {
 		err = CheckIfErrIsCauseItsBusyRn(err)
 		Log.Error(err.Error())
-		errOut = err
+		return err
 	} else {
 		renamesDone = append(renamesDone, []string{_appAsar, appAsar})
 	}
@@ -218,7 +240,7 @@ func unpatchAppAsar(dir string, isSystemElectron bool) (errOut error) {
 		Log.Debug("Renaming", _appAsar+".unpacked", "to", appAsar+".unpacked")
 		if err := os.Rename(_appAsar+".unpacked", appAsar+".unpacked"); err != nil {
 			Log.Error(err.Error())
-			errOut = err
+			return err
 		}
 	}
 	return

@@ -8,22 +8,23 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
-	"path"
+	path "path/filepath"
 	"runtime"
+	"sync/atomic"
 	"time"
 	"vencordinstaller/buildinfo"
 )
 
 var IsSelfOutdated = false
+var SelfUpdateFinished atomic.Bool
 var SelfUpdateCheckDoneChan = make(chan bool, 1)
 
 func init() {
 
 	if buildinfo.InstallerTag == buildinfo.VersionUnknown {
 		Log.Debug("Disabling self updater as this is not a release build")
+		SelfUpdateFinished.Store(true)
 		SelfUpdateCheckDoneChan <- false
 		return
 	}
@@ -36,10 +37,12 @@ func init() {
 		res, err := GetGithubRelease(InstallerReleaseUrl, InstallerReleaseUrlFallback)
 		if err != nil {
 			Log.Warn("Failed to check for self updates:", err)
+			SelfUpdateFinished.Store(true)
 			SelfUpdateCheckDoneChan <- false
 		} else {
 			IsSelfOutdated = res.TagName != buildinfo.InstallerTag
 			Log.Debug("Is self outdated?", IsSelfOutdated)
+			SelfUpdateFinished.Store(true)
 			SelfUpdateCheckDoneChan <- true
 		}
 	}()
@@ -62,7 +65,7 @@ func GetInstallerDownloadLink() string {
 
 func CanUpdateSelf() bool {
 
-	return IsSelfOutdated && runtime.GOOS != "darwin"
+	return SelfUpdateFinished.Load() && IsSelfOutdated && runtime.GOOS != "darwin"
 }
 
 func UpdateSelf() error {
@@ -84,40 +87,28 @@ func UpdateSelf() error {
 
 	ownExeDir := path.Dir(ownExePath)
 
-	res, err := http.Get(url)
+	stage, err := os.MkdirTemp(ownExeDir, ".VencordAR-update-")
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
-
-	tmp, err := os.CreateTemp(ownExeDir, "VencordInstallerUpdate")
-	if err != nil {
-		return fmt.Errorf("Failed to create tempfile: %w", err)
-	}
-	defer func() {
-		_ = tmp.Close()
-		_ = os.Remove(tmp.Name())
-	}()
-	if err = tmp.Chmod(0o755); err != nil {
-		return fmt.Errorf("failed to chmod 755 %s: %w", tmp.Name(), err)
-	}
-
-	if _, err = io.Copy(tmp, res.Body); err != nil {
+	defer os.RemoveAll(stage)
+	stagedExe := path.Join(stage, path.Base(ownExePath))
+	if err = downloadFile(url, stagedExe, 0755); err != nil {
 		return err
 	}
-
-	if err = tmp.Close(); err != nil {
+	if _, err = os.Lstat(ownExePath + ".old"); err == nil {
+		return errors.New("Previous installer backup still exists. Close the previous installer and try again")
+	} else if !os.IsNotExist(err) {
 		return err
 	}
-
-	if err = os.Remove(ownExePath); err != nil {
-		if err = os.Rename(ownExePath, ownExePath+".old"); err != nil {
-			return fmt.Errorf("Failed to remove/rename own executable: %w", err)
+	if err = os.Rename(ownExePath, ownExePath+".old"); err != nil {
+		return err
+	}
+	if err = os.Rename(stagedExe, ownExePath); err != nil {
+		if restoreErr := os.Rename(ownExePath+".old", ownExePath); restoreErr != nil {
+			return fmt.Errorf("Update failed: %w; restore failed: %v; original executable: %s.old", err, restoreErr, ownExePath)
 		}
-	}
-
-	if err = os.Rename(tmp.Name(), ownExePath); err != nil {
-		return fmt.Errorf("Failed to replace self with updated executable. Please manually redownload the installer: %w", err)
+		return err
 	}
 
 	return nil
@@ -145,16 +136,13 @@ func RelaunchSelf() error {
 	attr := new(os.ProcAttr)
 	attr.Files = []*os.File{os.Stdin, os.Stdout, os.Stderr}
 
-	var argv []string
-	if len(os.Args) > 1 {
-		argv = os.Args[1:]
-	} else {
-		argv = []string{}
+	ownExePath, err := os.Executable()
+	if err != nil {
+		return err
 	}
-
-	Log.Debug("Restarting self with exe", os.Args[0], "and args", argv)
-
-	proc, err := os.StartProcess(os.Args[0], argv, attr)
+	argv := append([]string{ownExePath}, os.Args[1:]...)
+	Log.Debug("Restarting self with exe", ownExePath, "and args", argv)
+	proc, err := os.StartProcess(ownExePath, argv, attr)
 	if err != nil {
 		return fmt.Errorf("Failed to start new process: %w", err)
 	}
