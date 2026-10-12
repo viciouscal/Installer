@@ -29,8 +29,8 @@ not select Install, Repair, or Uninstall until ready to test an installation.
 After review, use a **new** version tag. The release workflow creates a draft
 and refuses to overwrite an existing release for that tag. Existing releases,
 tags, and their assets are retained. Publishing the draft is a separate manual
-step. macOS release signing uses the upstream Apple secrets; preview builds
-are signed ad hoc. Winget submissions run only in the official repository.
+step. macOS signing uses configured Apple secrets when present; otherwise builds
+use ad hoc signing. Notarization runs only when its credentials are configured. Winget submissions run only in the official repository.
 
 The Vencord Arab Installer installs [Vencord Arab](https://github.com/viciouscal/Vencord)
 
