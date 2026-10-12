@@ -14,6 +14,34 @@ var uiArabic = true
 var arabicTranslations map[string]string
 var renderedArabic sync.Map
 
+func uiGlyphSeed() string {
+	var seed strings.Builder
+	for r := rune(32); r <= 255; r++ {
+		seed.WriteRune(r)
+	}
+	for r := rune(0x600); r <= 0x6ff; r++ {
+		seed.WriteRune(r)
+	}
+	for _, forms := range arabicForms {
+		for _, r := range forms {
+			if r != 0 {
+				seed.WriteRune(r)
+			}
+		}
+	}
+	for _, forms := range lamAlefForms {
+		for _, r := range forms {
+			seed.WriteRune(r)
+		}
+	}
+	for key, value := range arabicTranslations {
+		seed.WriteString(key)
+		seed.WriteString(value)
+		seed.WriteString(visualArabic(value))
+	}
+	return seed.String()
+}
+
 func init() {
 	if err := json.Unmarshal(arabicTranslationsJSON, &arabicTranslations); err != nil {
 		panic(err)

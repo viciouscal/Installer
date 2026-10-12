@@ -8,13 +8,9 @@ package main
 import (
 	"bufio"
 
-	"errors"
-
-	"io"
-	"net/http"
+	"fmt"
 	"os"
 	path "path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -32,6 +28,7 @@ type GithubRelease struct {
 var ReleaseData GithubRelease
 var GithubError error
 var GithubDoneChan chan bool
+var GithubFinished atomic.Bool
 
 var InstalledHash = "None"
 var LatestHash = "Unknown"
@@ -43,13 +40,17 @@ func InitGithubDownloader() {
 	IsDevInstall = os.Getenv("VENCORD_DEV_INSTALL") == "1"
 	Log.Debug("Is Dev Install: ", IsDevInstall)
 	if IsDevInstall {
+		GithubFinished.Store(true)
 		GithubDoneChan <- true
 		return
 	}
 
+	readInstalledHash()
+
 	go func() {
 
 		defer func() {
+			GithubFinished.Store(true)
 			GithubDoneChan <- GithubError == nil
 		}()
 
@@ -67,6 +68,9 @@ func InitGithubDownloader() {
 		Log.Debug("Latest hash is", LatestHash, "Local Install is", Ternary(LatestHash == InstalledHash, "up to date!", "outdated!"))
 	}()
 
+}
+
+func readInstalledHash() {
 	f, err := os.Open(Patcher)
 	if err != nil {
 		return
@@ -85,79 +89,63 @@ func InitGithubDownloader() {
 			Log.Debug("Didn't find hash")
 		}
 	}
+
 }
 
-func installLatestBuilds() (retErr error) {
-
-	Log.Debug("Installing latest builds...")
-
-	pkgJsonFile := path.Join(FilesDir, "package.json")
-	err := os.WriteFile(pkgJsonFile, []byte("{}"), 0644)
-	if err != nil {
-		Log.Warn("Failed to create", pkgJsonFile, err)
-	}
-
-	var wg sync.WaitGroup
-	var downloadedFiles atomic.Uint64
-
-	for _, ass := range ReleaseData.Assets {
-		if strings.HasPrefix(ass.Name, "patcher.js") ||
-			strings.HasPrefix(ass.Name, "preload.js") ||
-			strings.HasPrefix(ass.Name, "renderer.js") ||
-			strings.HasPrefix(ass.Name, "renderer.css") {
-			wg.Add(1)
-			ass := ass
-			go func() {
-				defer wg.Done()
-				Log.Debug("Downloading file", ass.Name)
-
-				res, err := http.Get(ass.DownloadURL)
-				if err == nil && res.StatusCode >= 300 {
-					err = errors.New(res.Status)
-				}
-				if err != nil {
-					Log.Error("Failed to download", ass.Name+":", err)
-					retErr = err
-					return
-				}
-				outFile := path.Join(FilesDir, ass.Name)
-				out, err := os.OpenFile(outFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-				if err != nil {
-					Log.Error("Failed to create", outFile+":", err)
-					retErr = err
-					return
-				}
-				read, err := io.Copy(out, res.Body)
-				if err != nil {
-					Log.Error("Failed to download to", outFile+":", err)
-					retErr = err
-					return
-				}
-				contentLength := res.Header.Get("Content-Length")
-				expected := strconv.FormatInt(read, 10)
-				if expected != contentLength {
-					err = errors.New("Unexpected end of input. Content-Length was " + contentLength + ", but I only read " + expected)
-					Log.Error(err.Error())
-					retErr = err
-					return
-				}
-				downloadedFiles.Add(1)
-			}()
+func installLatestBuilds() error {
+	required := map[string]bool{"patcher.js": false, "preload.js": false, "renderer.js": false, "renderer.css": false}
+	assets := make(map[string]string)
+	for _, asset := range ReleaseData.Assets {
+		_, needed := required[asset.Name]
+		_, sourceMap := required[strings.TrimSuffix(asset.Name, ".map")]
+		if !needed && !(sourceMap && strings.HasSuffix(asset.Name, ".map")) {
+			continue
+		}
+		if _, duplicate := assets[asset.Name]; duplicate {
+			return fmt.Errorf("Duplicate release asset: %s", asset.Name)
+		}
+		assets[asset.Name] = asset.DownloadURL
+		if needed {
+			required[asset.Name] = true
 		}
 	}
-
+	for name, found := range required {
+		if !found {
+			return fmt.Errorf("Missing required release asset: %s", name)
+		}
+	}
+	stage, err := os.MkdirTemp(FilesDir, ".download-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(stage)
+	if err = os.WriteFile(path.Join(stage, "package.json"), []byte("{}"), 0644); err != nil {
+		return err
+	}
+	var wg sync.WaitGroup
+	failures := make(chan error, len(assets))
+	for name, url := range assets {
+		wg.Add(1)
+		go func(name, url string) {
+			defer wg.Done()
+			if err := downloadFile(url, path.Join(stage, name), 0644); err != nil {
+				failures <- fmt.Errorf("%s: %w", name, err)
+			}
+		}(name, url)
+	}
 	wg.Wait()
-
-	if retErr != nil {
-		return retErr
+	close(failures)
+	for err := range failures {
+		return err
 	}
-	if downloadedFiles.Load() < 4 {
-		return errors.New("Couldn't find all required files")
+	names := []string{"package.json"}
+	for name := range assets {
+		names = append(names, name)
 	}
-
-	Log.Debug("Done!")
+	if err = replaceStagedFiles(stage, FilesDir, names); err != nil {
+		return err
+	}
 	_ = FixOwnership(FilesDir)
-
 	InstalledHash = LatestHash
-	return
+	return nil
 }
