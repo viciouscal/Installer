@@ -28,8 +28,6 @@
 	<true/>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
-	<key>CFBundleIconName</key>
-	<string>AppIcon</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Vendicated and contributors</string>
 	<key>LSApplicationCategoryType</key>

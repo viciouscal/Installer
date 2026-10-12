@@ -57,6 +57,13 @@ jobs:
 
   build-mac:
     runs-on: macos-latest
+    env:
+      APPLE_SIGNING_CERT: ${{ secrets.APPLE_SIGNING_CERT }}
+      APPLE_SIGNING_CERT_PASSWORD: ${{ secrets.APPLE_SIGNING_CERT_PASSWORD }}
+      APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY_NAME }}
+      APPLE_ID_EMAIL: ${{ secrets.APPLE_ID_EMAIL }}
+      APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+      APPLE_ID_TEAM: ${{ secrets.APPLE_ID_TEAM }}
 
     steps:
       - name: Install Go
@@ -84,8 +91,16 @@ jobs:
       - name: Install dependencies
         run: brew install pkg-config sdl2 create-dmg
 
+      - name: Configure macOS signing
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* && -n "$APPLE_SIGNING_CERT" && -n "$APPLE_SIGNING_CERT_PASSWORD" && -n "$APPLE_IDENTITY" ]]; then
+            echo "SIGN_MACOS=true" >> "$GITHUB_ENV"
+          else
+            echo "SIGN_MACOS=false" >> "$GITHUB_ENV"
+          fi
+
       - name: Setup Certificates
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: env.SIGN_MACOS == 'true'
         uses: apple-actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466
         with:
           p12-file-base64: ${{ secrets.APPLE_SIGNING_CERT }}
@@ -96,13 +111,19 @@ jobs:
           APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY_NAME }}
         run: |
           make ARCH=universal VERSION="${VERSION}"
-          make ARCH=universal GUI=1 DMG=1 IDENTITY="${APPLE_IDENTITY:--}" VERSION="${VERSION}"
+          identity="-"
+          if [ "$SIGN_MACOS" = "true" ]; then identity="$APPLE_IDENTITY"; fi
+          make ARCH=universal GUI=1 DMG=1 IDENTITY="$identity" VERSION="${VERSION}"
 
-      - name: Codesign
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Notarize macOS build
+        if: env.SIGN_MACOS == 'true' && env.APPLE_ID_EMAIL != '' && env.APPLE_ID_PASSWORD != '' && env.APPLE_ID_TEAM != ''
         run: |
-          xcrun notarytool submit build/VencordInstaller.dmg --apple-id "${{ secrets.APPLE_ID_EMAIL }}" --password "${{ secrets.APPLE_ID_PASSWORD }}" --team-id "${{ secrets.APPLE_ID_TEAM }}" --wait
+          xcrun notarytool submit build/VencordInstaller.dmg --apple-id "$APPLE_ID_EMAIL" --password "$APPLE_ID_PASSWORD" --team-id "$APPLE_ID_TEAM" --wait
           xcrun stapler staple build/VencordInstaller.dmg
+          xcrun stapler staple build/VencordInstaller.app
+
+      - name: Package compatible macOS zip
+        run: ditto -c -k --sequesterRsrc --keepParent build/VencordInstaller.app build/VencordInstaller.MacOS.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -110,6 +131,7 @@ jobs:
           name: VencordInstaller-macos
           path: |
             build/VencordInstaller.dmg
+            build/VencordInstaller.MacOS.zip
             build/VencordInstallerCli-darwin
 
   build-windows:

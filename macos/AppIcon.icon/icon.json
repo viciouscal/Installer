@@ -1,44 +1,36 @@
 {
-  "fill" : {
-    "automatic-gradient" : "srgb:0.62514,0.51949,0.55399,1.00000"
+  "fill": {
+    "automatic-gradient": "srgb:0.62514,0.51949,0.55399,1.00000"
   },
-  "groups" : [
+  "groups": [
     {
-      "layers" : [
+      "layers": [
         {
-          "image-name" : "vc_outline.png",
-          "name" : "vc_outline"
-        },
-        {
-          "image-name" : "vc_v.png",
-          "name" : "vc_v"
-        },
-        {
-          "image-name" : "vc_c.png",
-          "name" : "vc_c"
+          "image-name": "vencordar.png",
+          "name": "VencordAR"
         }
       ],
-      "position" : {
-        "scale" : 1.22,
-        "translation-in-points" : [
+      "position": {
+        "scale": 1,
+        "translation-in-points": [
           0,
           0
         ]
       },
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
       },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
+      "translucency": {
+        "enabled": true,
+        "value": 0.5
       }
     }
   ],
-  "supported-platforms" : {
-    "circles" : [
+  "supported-platforms": {
+    "circles": [
       "watchOS"
     ],
-    "squares" : "shared"
+    "squares": "shared"
   }
 }
