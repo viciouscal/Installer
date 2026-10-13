@@ -35,11 +35,11 @@ func prepareGlassBackground() {
 	for y := 0; y < 512; y++ {
 		for x := 0; x < 512; x++ {
 			u, v := float64(x)/512, float64(y)/512
-			purple := math.Exp(-((u-0.15)*(u-0.15)*3 + (v-0.25)*(v-0.25)*3)) * 0.30
-			pink := math.Exp(-((u-0.95)*(u-0.95)*4 + (v-0.75)*(v-0.75)*3)) * 0.23
-			reflection := math.Exp(-math.Pow((v+u*0.45-0.32)/0.12, 2)) * 5
+			purple := math.Exp(-((u-0.15)*(u-0.15)*3 + (v-0.25)*(v-0.25)*3)) * 0.24
+			pink := math.Exp(-((u-0.95)*(u-0.95)*4 + (v-0.75)*(v-0.75)*3)) * 0.18
+			reflection := math.Exp(-math.Pow((v+u*0.45-0.32)/0.12, 2)) * 4
 			channel := func(value float64) uint8 { return uint8(math.Min(255, value)) }
-			bitmap.SetRGBA(x, y, color.RGBA{channel(8 + 147*purple + 219*pink + reflection), channel(6 + 51*purple + 39*pink + reflection), channel(14 + 234*purple + 119*pink + reflection), 255})
+			bitmap.SetRGBA(x, y, color.RGBA{channel(6 + 147*purple + 219*pink + reflection), channel(4 + 51*purple + 39*pink + reflection), channel(10 + 234*purple + 119*pink + reflection), 255})
 		}
 	}
 	g.EnqueueNewTextureFromRgba(bitmap, func(texture *g.Texture) { glassTexture.Store(texture); g.Update() })
