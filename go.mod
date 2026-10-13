@@ -5,7 +5,6 @@ go 1.20
 require (
 	github.com/AllenDang/giu v0.6.2
 	github.com/AllenDang/imgui-go v1.12.1-0.20221124025851-59b862ca5a0c
-	github.com/ProtonMail/go-appdir v1.1.0
 	github.com/fatih/color v1.16.0
 	github.com/manifoldco/promptui v0.9.0
 	golang.org/x/image v0.14.0

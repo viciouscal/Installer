@@ -1,5 +1,6 @@
 /*
  * SPDX-License-Identifier: GPL-3.0
+ * Vencord Installer, a cross platform gui/cli app for installing Vencord
  * Copyright (c) 2023 Vendicated and Vencord contributors
  */
 
@@ -21,7 +22,6 @@ var (
 )
 
 func init() {
-
 	var sudoUser = os.Getenv("SUDO_USER")
 	if sudoUser == "" {
 		sudoUser = os.Getenv("DOAS_USER")
@@ -31,10 +31,10 @@ func init() {
 	}
 	if sudoUser != "" {
 		if sudoUser == "root" {
-			panic("VencordARInstaller must not be run as the root user. Please rerun as normal user. Use sudo or doas to run as root.")
+			panic("VencordInstaller must not be run as the root user. Please rerun as normal user. Use sudo or doas to run as root.")
 		}
 
-		Log.Debug("VencordARInstaller was run with root privileges, actual user is", sudoUser)
+		Log.Debug("VencordInstaller was run with root privileges, actual user is", sudoUser)
 		Log.Debug("Looking up HOME of", sudoUser)
 
 		u, err := user.Lookup(sudoUser)
@@ -45,7 +45,7 @@ func init() {
 			_ = os.Setenv("HOME", u.HomeDir)
 		}
 	} else if os.Getuid() == 0 {
-		panic("VencordARInstaller was run as root but neither SUDO_USER nor DOAS_USER are set. Please rerun me as a normal user, with sudo/doas, or manually set SUDO_USER to your username")
+		panic("VencordInstaller was run as root but neither SUDO_USER nor DOAS_USER are set. Please rerun me as a normal user, with sudo/doas, or manually set SUDO_USER to your username")
 	}
 	Home = os.Getenv("HOME")
 
@@ -70,22 +70,22 @@ func ParseDiscordNew(p, branch string, isFlatpak bool) *DiscordInstall {
 	}
 
 	isPatched := false
-	appPath := ""
+	resourcesPath := ""
 	for _, dir := range entries {
 		if dir.IsDir() && strings.HasPrefix(dir.Name(), "app-") {
 			resources := path.Join(p, dir.Name(), "resources")
-			if !ExistsFile(resources) {
+			if !isResourcesFolderValid(resources) {
 				continue
 			}
-			app := path.Join(resources, "app")
-			if app > appPath {
-				appPath = app
-				isPatched = ExistsFile(path.Join(resources, "_app.asar"))
+
+			if resources > resourcesPath {
+				resourcesPath = resources
+				isPatched = isResourcesFolderPatched(resources)
 			}
 		}
 	}
 
-	if appPath == "" {
+	if resourcesPath == "" {
 		return nil
 	}
 
@@ -94,12 +94,11 @@ func ParseDiscordNew(p, branch string, isFlatpak bool) *DiscordInstall {
 	}
 
 	return &DiscordInstall{
-		path:             p,
-		branch:           branch,
-		appPath:          appPath,
-		isPatched:        isPatched,
-		isFlatpak:        isFlatpak,
-		isSystemElectron: false,
+		path:          p,
+		branch:        branch,
+		resourcesPath: resourcesPath,
+		isPatched:     isPatched,
+		isFlatpak:     isFlatpak,
 	}
 }
 
@@ -109,35 +108,28 @@ func ParseDiscord(p, _ string) *DiscordInstall {
 	needsFlatpakResolve := strings.Contains(p, "/flatpak/") && !strings.Contains(p, "/current/active/files/")
 	if needsFlatpakResolve {
 		discordName := strings.ToLower(name[len("com.discordapp."):])
-		if discordName != "discord" {
-
+		if discordName != "discord" { //
 			discordName = discordName[:7] + "-" + discordName[7:]
 		}
 		p = path.Join(p, "current/active/files", discordName)
 	}
 
 	resources := path.Join(p, "resources")
-	app := path.Join(resources, "app")
 
-	isPatched, isSystemElectron := false, false
+	isPatched := false
 
-	if ExistsFile(resources) {
-		isPatched = ExistsFile(path.Join(resources, "_app.asar"))
-	} else if ExistsFile(path.Join(p, "app.asar")) {
-		isSystemElectron = true
-		isPatched = ExistsFile(path.Join(p, "_app.asar.unpacked"))
+	if isResourcesFolderValid(resources) {
+		isPatched = isResourcesFolderPatched(resources)
 	} else {
-
 		return nil
 	}
 
 	return &DiscordInstall{
-		path:             p,
-		branch:           GetBranch(name),
-		appPath:          app,
-		isPatched:        isPatched,
-		isFlatpak:        needsFlatpakResolve,
-		isSystemElectron: isSystemElectron,
+		path:          p,
+		branch:        GetBranch(name),
+		resourcesPath: resources,
+		isPatched:     isPatched,
+		isFlatpak:     needsFlatpakResolve,
 	}
 }
 
@@ -192,7 +184,6 @@ func FindDiscords() []any {
 }
 
 func PreparePatch(di *DiscordInstall) {}
-
 func FixOwnership(p string) error {
 	if os.Geteuid() != 0 {
 		return nil
@@ -212,7 +203,6 @@ func FixOwnership(p string) error {
 		return err
 	}
 	Log.Debug("Lookup successful, Uid", u.Uid, "Gid", u.Gid)
-
 	uid, _ := strconv.Atoi(u.Uid)
 	gid, _ := strconv.Atoi(u.Gid)
 

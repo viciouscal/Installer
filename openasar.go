@@ -41,7 +41,7 @@ func (di *DiscordInstall) IsOpenAsar() (retBool bool) {
 		di.isOpenAsar = &retBool
 	}()
 
-	asarFile, err := FindAsarFile(path.Join(di.appPath, ".."))
+	asarFile, err := FindAsarFile(di.resourcesPath)
 	if err != nil {
 		Log.Error(err.Error())
 		return false
@@ -64,7 +64,7 @@ func (di *DiscordInstall) IsOpenAsar() (retBool bool) {
 func (di *DiscordInstall) InstallOpenAsar() error {
 	PreparePatch(di)
 
-	dir := path.Join(di.appPath, "..")
+	dir := di.resourcesPath
 	asarFile, err := FindAsarFile(dir)
 	if err != nil {
 		return err
@@ -103,7 +103,7 @@ func (di *DiscordInstall) InstallOpenAsar() error {
 func (di *DiscordInstall) UninstallOpenAsar() error {
 	PreparePatch(di)
 
-	dir := path.Join(di.appPath, "..")
+	dir := di.resourcesPath
 
 	for _, file := range []string{path.Join(dir, "app.asar.backup"), path.Join(dir, "app.asar.original")} {
 		if !ExistsFile(file) {

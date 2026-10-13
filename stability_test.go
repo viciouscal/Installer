@@ -124,19 +124,16 @@ func TestInstallDownloadFailurePreservesExistingFiles(t *testing.T) {
 
 func TestUnpatchRollback(t *testing.T) {
 	dir := t.TempDir()
-	for name, value := range map[string]string{"app.asar": "wrapper", "_app.asar": "original"} {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(value), 0644); err != nil {
-			t.Fatal(err)
-		}
+	target := filepath.Join(dir, "app.asar")
+	if err := os.WriteFile(target, []byte("wrapper"), 0644); err != nil {
+		t.Fatal(err)
 	}
-	if err := unpatchAppAsar(dir, true); err == nil {
-		t.Fatal("missing unpacked directory accepted")
+	if err := unpatchAppAsar(dir); err == nil {
+		t.Fatal("missing original backup accepted")
 	}
-	for name, value := range map[string]string{"app.asar": "wrapper", "_app.asar": "original"} {
-		data, err := os.ReadFile(filepath.Join(dir, name))
-		if err != nil || string(data) != value {
-			t.Fatalf("rollback lost %s: %q %v", name, data, err)
-		}
+	data, err := os.ReadFile(target)
+	if err != nil || string(data) != "wrapper" {
+		t.Fatalf("rollback lost wrapper: %q %v", data, err)
 	}
 }
 
@@ -158,7 +155,7 @@ func TestPatchPreservesOriginalBackup(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := patchAppAsar(dir, false); err == nil {
+	if err := patchAppAsar(dir); err == nil {
 		t.Fatal("existing original backup overwritten")
 	}
 	for name, value := range map[string]string{"app.asar": "current", "_app.asar": "original"} {
@@ -169,14 +166,17 @@ func TestPatchPreservesOriginalBackup(t *testing.T) {
 	}
 }
 
-func TestPatchRollbackOnMissingUnpacked(t *testing.T) {
+func TestPatchAndUnpatchRoundTrip(t *testing.T) {
 	dir := t.TempDir()
 	target := filepath.Join(dir, "app.asar")
 	if err := os.WriteFile(target, []byte("original"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := patchAppAsar(dir, true); err == nil {
-		t.Fatal("missing unpacked directory accepted")
+	if err := patchAppAsar(dir); err != nil {
+		t.Fatal(err)
+	}
+	if err := unpatchAppAsar(dir); err != nil {
+		t.Fatal(err)
 	}
 	data, err := os.ReadFile(target)
 	if err != nil || string(data) != "original" {
