@@ -14,9 +14,9 @@ import (
 
 func glassTheme() *g.StyleSetter {
 	return g.Style().
-		SetColor(g.StyleColorWindowBg, color.RGBA{0, 0, 0, 255}).
-		SetColor(g.StyleColorPopupBg, color.RGBA{14, 10, 18, 255}).
-		SetColor(g.StyleColorBorder, color.RGBA{176, 57, 111, 80}).
+		SetColor(g.StyleColorWindowBg, color.RGBA{25, 15, 39, 255}).
+		SetColor(g.StyleColorPopupBg, color.RGBA{30, 20, 43, 245}).
+		SetColor(g.StyleColorBorder, color.RGBA{235, 204, 255, 58}).
 		SetColor(g.StyleColorFrameBg, color.RGBA{190, 205, 240, 22}).
 		SetColor(g.StyleColorFrameBgHovered, color.RGBA{200, 215, 250, 38}).
 		SetColor(g.StyleColorFrameBgActive, color.RGBA{200, 215, 250, 54}).
@@ -35,9 +35,11 @@ func prepareGlassBackground() {
 	for y := 0; y < 512; y++ {
 		for x := 0; x < 512; x++ {
 			u, v := float64(x)/512, float64(y)/512
-			purple := math.Max(0, 1-math.Hypot(u-0.5, v-0.5)/0.5) * 0.05
-			pink := math.Max(0, 1-math.Hypot(u-0.8, v-0.2)/0.5) * 0.05
-			bitmap.SetRGBA(x, y, color.RGBA{uint8(147*purple + 219*pink), uint8(51*purple + 39*pink), uint8(234*purple + 119*pink), 255})
+			purple := math.Exp(-((u-0.15)*(u-0.15)*3 + (v-0.25)*(v-0.25)*3)) * 0.65
+			pink := math.Exp(-((u-0.95)*(u-0.95)*4 + (v-0.75)*(v-0.75)*3)) * 0.5
+			reflection := math.Exp(-math.Pow((v+u*0.45-0.32)/0.12, 2)) * 15
+			channel := func(value float64) uint8 { return uint8(math.Min(255, value)) }
+			bitmap.SetRGBA(x, y, color.RGBA{channel(18 + 147*purple + 219*pink + reflection), channel(12 + 51*purple + 39*pink + reflection), channel(28 + 234*purple + 119*pink + reflection), 255})
 		}
 	}
 	g.EnqueueNewTextureFromRgba(bitmap, func(texture *g.Texture) { glassTexture.Store(texture); g.Update() })
@@ -52,5 +54,11 @@ func glassBackground() g.Widget {
 		if texture := glassTexture.Load(); texture != nil {
 			g.GetCanvas().AddImage(texture, image.Pt(int(origin.X), int(origin.Y)), image.Pt(int(origin.X+size.X), int(origin.Y+size.Y)))
 		}
+		list := imgui.GetWindowDrawList()
+		edge := imgui.Vec2{X: origin.X + size.X, Y: origin.Y + size.Y}
+		list.AddRectFilled(origin, edge, imgui.Vec4{X: 1, Y: 0.94, Z: 1, W: 0.035}, 0, 0)
+		list.AddLine(imgui.Vec2{X: origin.X, Y: origin.Y + 1}, imgui.Vec2{X: edge.X, Y: origin.Y + 1}, imgui.Vec4{X: 1, Y: 0.9, Z: 1, W: 0.24}, 1)
+		list.AddRect(imgui.Vec2{X: origin.X + 1, Y: origin.Y + 1}, imgui.Vec2{X: edge.X - 1, Y: edge.Y - 1}, imgui.Vec4{X: 0.9, Y: 0.78, Z: 1, W: 0.12}, 0, 0, 1)
+
 	})
 }
