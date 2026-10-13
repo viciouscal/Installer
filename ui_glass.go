@@ -53,7 +53,7 @@ func glassBackground() g.Widget {
 		}
 		min := imgui.Vec2{X: origin.X + 20, Y: origin.Y + 20}
 		max := imgui.Vec2{X: origin.X + size.X - 20, Y: origin.Y + size.Y - 20}
-		list.AddRectFilled(min, max, imgui.Vec4{X: 0.82, Y: 0.87, Z: 1, W: 0.035}, 22, 15)
-		list.AddRect(min, max, imgui.Vec4{X: 0.86, Y: 0.91, Z: 1, W: 0.14}, 22, 15, 1)
+		list.AddRectFilled(min, max, imgui.Vec4{X: 0.82, Y: 0.87, Z: 1, W: 0.035}, 22, 0)
+		list.AddRect(min, max, imgui.Vec4{X: 0.86, Y: 0.91, Z: 1, W: 0.14}, 22, 0, 1)
 	})
 }
