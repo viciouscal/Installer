@@ -228,6 +228,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           name: ${{ env.VERSION }}
+          body: ''
           prerelease: false
           draft: true
           files: |

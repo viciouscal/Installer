@@ -41,6 +41,10 @@ endif
 endif
 
 MACOS_ARCHS := $(ARCH)
+WINDOWS_BINARY := VencordInstaller$(POSTFIX).exe
+ifeq ($(GUI),1)
+WINDOWS_BINARY := VencordArInstaller.exe
+endif
 ifeq ($(ARCH),universal)
 MACOS_ARCHS := amd64 arm64
 endif
@@ -108,7 +112,7 @@ else ifeq ($(PLATFORM),windows)
 	CGO_ENABLED=$(CGO) GOOS=$(PLATFORM) GOARCH=$(ARCH) \
 		go build -v -tags "$(TAGS)" \
 		-ldflags "$(LDFLAGS)" \
-		-o build/VencordInstaller$(POSTFIX).exe
+		-o build/$(WINDOWS_BINARY)
 
 else
 	CGO_ENABLED=$(CGO) GOOS=$(PLATFORM) GOARCH=$(ARCH) go build \

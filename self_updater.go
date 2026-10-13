@@ -52,7 +52,7 @@ func GetInstallerDownloadLink() string {
 	const BaseUrl = "https://github.com/viciouscal/Installer/releases/latest/download/"
 	switch runtime.GOOS {
 	case "windows":
-		filename := Ternary(buildinfo.UiType == buildinfo.UiTypeCli, "VencordInstallerCli.exe", "VencordInstaller.exe")
+		filename := Ternary(buildinfo.UiType == buildinfo.UiTypeCli, "VencordInstallerCli.exe", "VencordArInstaller.exe")
 		return BaseUrl + filename
 	case "darwin":
 		return BaseUrl + "VencordInstaller.dmg"
