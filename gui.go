@@ -74,7 +74,8 @@ func main() {
 	}()
 
 	setupUIFont()
-	win = g.NewMasterWindow(localizedWindowTitle(), 1200, 800, 0)
+	width, height := initialWindowSize()
+	win = g.NewMasterWindow(localizedWindowTitle(), width, height, 0)
 	makeLanguageButton()
 	prepareGlassBackground()
 
