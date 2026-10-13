@@ -145,12 +145,7 @@ func main() {
 	} else if uninstall {
 		errSilent = PromptDiscord("unpatch", *locationFlag, *branchFlag).unpatch()
 	} else if update {
-		Log.Info("Downloading latest Vencord Arab files...")
-		err := installLatestBuilds()
-		Log.Info("Done!")
-		if err == nil {
-			errSilent = PromptDiscord("repair", *locationFlag, *branchFlag).patch()
-		}
+		errSilent = PromptDiscord("repair", *locationFlag, *branchFlag).patch()
 	} else if installOpenAsar {
 		discord := PromptDiscord("patch", *locationFlag, *branchFlag)
 		if !discord.IsOpenAsar() {
@@ -280,7 +275,7 @@ func InstallLatestBuilds() error {
 		return nil
 	}
 
-	return installLatestBuilds()
+	return refreshAndInstallLatestBuilds()
 }
 
 func HandleScuffedInstall() {

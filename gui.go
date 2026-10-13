@@ -9,7 +9,7 @@ package main
 
 import (
 	"bytes"
-	_ "embed"
+	"embed"
 	"errors"
 	"image"
 	"image/color"
@@ -51,8 +51,8 @@ var (
 	win *g.MasterWindow
 )
 
-//go:embed winres/icon.png
-var iconBytes []byte
+//go:embed winres/icon*.png
+var windowIcons embed.FS
 
 func init() {
 	LogLevel = LevelDebug
@@ -76,13 +76,24 @@ func main() {
 	setupUIFont()
 	win = g.NewMasterWindow(localizedWindowTitle(), 1200, 800, 0)
 	makeLanguageButton()
+	prepareGlassBackground()
 
-	icon, _, err := image.Decode(bytes.NewReader(iconBytes))
-	if err != nil {
-		Log.Warn("Failed to load application icon", err)
-		Log.Debug(iconBytes, len(iconBytes))
-	} else {
-		win.SetIcon([]image.Image{icon})
+	var icons []image.Image
+	for _, name := range []string{"winres/icon16.png", "winres/icon32.png", "winres/icon48.png", "winres/icon64.png", "winres/icon128.png", "winres/icon256.png"} {
+		data, err := windowIcons.ReadFile(name)
+		if err != nil {
+			Log.Warn("Failed to read application icon", err)
+			continue
+		}
+		icon, _, err := image.Decode(bytes.NewReader(data))
+		if err != nil {
+			Log.Warn("Failed to load application icon", err)
+			continue
+		}
+		icons = append(icons, icon)
+	}
+	if len(icons) > 0 {
+		win.SetIcon(icons)
 	}
 
 	win.Run(loop)
@@ -124,10 +135,7 @@ func InstallLatestBuilds() (err error) {
 		return
 	}
 
-	err = installLatestBuilds()
-	if err != nil {
-		ShowErrorModal("Failed to install the latest Vencord Arab builds from GitHub", err.Error(), "https://github.com/viciouscal/Installer/issues")
-	}
+	err = refreshAndInstallLatestBuilds()
 	return
 }
 
@@ -505,7 +513,7 @@ func renderInstaller() g.Widget {
 	}
 
 	layout := g.Layout{
-		g.Style().SetFont(uiFont(20)).To(
+		g.Style().SetFont(uiFont(25)).To(
 			renderErrorCard(
 				DiscordYellow,
 				color.Black,
@@ -635,16 +643,7 @@ func renderInstaller() g.Widget {
 					SetDisabled(!GithubFinished.Load() || GithubError != nil).
 					To(
 						g.Button(uiText("Reinstall / Repair")).
-							OnClick(func() {
-								if IsDevInstall {
-									handlePatch()
-								} else {
-									err := InstallLatestBuilds()
-									if err == nil {
-										handlePatch()
-									}
-								}
-							}).
+							OnClick(handlePatch).
 							Size((w-40)/4, 50),
 						Tooltip("Reinstall & Update Vencord Arab"),
 					),
@@ -743,6 +742,10 @@ func renderErrorCard(bgColor color.Color, textColor color.Color, message string,
 }
 
 func loop() {
+	glassTheme().To(g.Custom(renderMainWindow)).Build()
+}
+
+func renderMainWindow() {
 	g.PushWindowPadding(48, 48)
 
 	g.SingleWindow().
@@ -759,6 +762,7 @@ func loop() {
 			}},
 		).
 		Layout(
+			glassBackground(),
 			languageSelector(),
 			g.Dummy(0, 12),
 			g.Align(g.AlignCenter).To(

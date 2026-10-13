@@ -114,10 +114,8 @@ func patchAppAsar(dir string, isSystemElectron bool) (err error) {
 
 func (di *DiscordInstall) patch() error {
 	Log.Info("Patching " + di.path + "...")
-	if LatestHash != InstalledHash {
-		if err := InstallLatestBuilds(); err != nil {
-			return nil
-		}
+	if err := InstallLatestBuilds(); err != nil {
+		return err
 	}
 
 	PreparePatch(di)

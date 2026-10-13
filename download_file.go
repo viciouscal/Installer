@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
@@ -16,7 +17,11 @@ func downloadFile(url, destination string, mode os.FileMode) (errOut error) {
 	if err != nil {
 		return err
 	}
+	query := req.URL.Query()
+	query.Set("_vencordar", strconv.FormatInt(time.Now().UnixNano(), 10))
+	req.URL.RawQuery = query.Encode()
 	req.Header.Set("User-Agent", UserAgent)
+	req.Header.Set("Cache-Control", "no-cache, no-store")
 	res, err := downloadClient.Do(req)
 	if err != nil {
 		return err

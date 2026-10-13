@@ -35,27 +35,27 @@ func makeLanguageButton() {
 		panic(err)
 	}
 	g.EnqueueNewTextureFromRgba(roundedFlag(sa), func(texture *g.Texture) {
-		saLanguageButton.Store(g.ImageButton(texture).Size(72, 40).FramePadding(0).
+		saLanguageButton.Store(g.ImageButton(texture).Size(48, 28).FramePadding(0).
 			BgColor(color.RGBA{}).OnClick(func() { setUILanguage(true) }))
 		g.Update()
 	})
 	g.EnqueueNewTextureFromRgba(roundedFlag(us), func(texture *g.Texture) {
-		usLanguageButton.Store(g.ImageButton(texture).Size(72, 40).FramePadding(0).
+		usLanguageButton.Store(g.ImageButton(texture).Size(48, 28).FramePadding(0).
 			BgColor(color.RGBA{}).OnClick(func() { setUILanguage(false) }))
 		g.Update()
 	})
 }
 
 func roundedFlag(flag image.Image) image.Image {
-	bounds := image.Rect(0, 0, 72, 40)
+	bounds := image.Rect(0, 0, 48, 28)
 	icon := image.NewRGBA(bounds)
 	draw.BiLinear.Scale(icon, bounds, flag, flag.Bounds(), draw.Src, nil)
 	for y := 0; y < bounds.Dy(); y++ {
 		for x := 0; x < bounds.Dx(); x++ {
 			px, py := float64(x)+0.5, float64(y)+0.5
-			cx := math.Max(10, math.Min(float64(bounds.Dx())-10, px))
-			cy := math.Max(10, math.Min(float64(bounds.Dy())-10, py))
-			coverage := math.Max(0, math.Min(1, 10.5-math.Hypot(px-cx, py-cy)))
+			cx := math.Max(7, math.Min(float64(bounds.Dx())-7, px))
+			cy := math.Max(7, math.Min(float64(bounds.Dy())-7, py))
+			coverage := math.Max(0, math.Min(1, 7.5-math.Hypot(px-cx, py-cy)))
 			pixel := icon.RGBAAt(x, y)
 			pixel.R = uint8(float64(pixel.R) * coverage)
 			pixel.G = uint8(float64(pixel.G) * coverage)
@@ -78,10 +78,10 @@ func languageSelector() g.Widget {
 			available, _ := g.GetAvailableRegion()
 			width, height := g.CalcTextSize("US - AR")
 			x := start.X
-			if available > width+84 {
-				x += int(available - width - 84)
+			if available > width+60 {
+				x += int(available - width - 60)
 			}
-			g.SetCursorPos(image.Pt(x, start.Y+int((40-height)/2)))
+			g.SetCursorPos(image.Pt(x, start.Y+int((28-height)/2)))
 			g.Label("US - AR").Build()
 			g.SetCursorPos(image.Pt(x+int(width)+12, start.Y))
 			button := saLanguageButton.Load()
@@ -92,7 +92,7 @@ func languageSelector() g.Widget {
 				button.Build()
 			}
 			_, spacing := g.GetItemSpacing()
-			g.SetCursorPos(image.Pt(start.X, start.Y+40+int(spacing)))
+			g.SetCursorPos(image.Pt(start.X, start.Y+28+int(spacing)))
 		}))
 }
 

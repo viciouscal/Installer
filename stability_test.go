@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -179,5 +181,54 @@ func TestPatchRollbackOnMissingUnpacked(t *testing.T) {
 	data, err := os.ReadFile(target)
 	if err != nil || string(data) != "original" {
 		t.Fatalf("original lost: %q %v", data, err)
+	}
+}
+
+func TestReinstallFetchesFreshReleaseEveryTime(t *testing.T) {
+	oldReleaseClient, oldDownloadClient := releaseClient, downloadClient
+	oldDir, oldRelease, oldHash := FilesDir, ReleaseData, InstalledHash
+	t.Cleanup(func() {
+		releaseClient, downloadClient = oldReleaseClient, oldDownloadClient
+		FilesDir, ReleaseData, InstalledHash = oldDir, oldRelease, oldHash
+	})
+	FilesDir = t.TempDir()
+	ReleaseData = GithubRelease{Name: "DevBuild stale"}
+	generation := 0
+	releaseClient = &http.Client{Transport: releaseTransport(func(r *http.Request) (*http.Response, error) {
+		generation++
+		if r.Header.Get("Cache-Control") == "" {
+			t.Fatal("metadata request may reuse cached response")
+		}
+		release := GithubRelease{Name: fmt.Sprintf("DevBuild fresh%d", generation), TagName: "devbuild"}
+		for _, name := range []string{"patcher.js", "preload.js", "renderer.js", "renderer.css"} {
+			release.Assets = append(release.Assets, struct {
+				Name        string `json:"name"`
+				DownloadURL string `json:"browser_download_url"`
+			}{name, "https://downloads.example/" + name})
+		}
+		body, _ := json.Marshal(release)
+		return testResponse(r, 200, string(body)), nil
+	})}
+	downloadClient = &http.Client{Transport: releaseTransport(func(r *http.Request) (*http.Response, error) {
+		if r.URL.Query().Get("_vencordar") == "" {
+			t.Fatal("download URL has no cache bypass")
+		}
+		body := fmt.Sprintf("fresh%d", generation)
+		res := testResponse(r, 200, body)
+		res.ContentLength = int64(len(body))
+		return res, nil
+	})}
+	for attempt := 1; attempt <= 2; attempt++ {
+		if err := refreshAndInstallLatestBuilds(); err != nil {
+			t.Fatal(err)
+		}
+		expected := fmt.Sprintf("fresh%d", attempt)
+		data, err := os.ReadFile(filepath.Join(FilesDir, "patcher.js"))
+		if err != nil || string(data) != expected || InstalledHash != expected {
+			t.Fatalf("reinstall reused old build: %q %s %v", data, InstalledHash, err)
+		}
+	}
+	if generation != 2 {
+		t.Fatalf("release fetched %d times", generation)
 	}
 }

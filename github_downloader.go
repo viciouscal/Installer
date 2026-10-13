@@ -92,10 +92,23 @@ func readInstalledHash() {
 
 }
 
+func refreshAndInstallLatestBuilds() error {
+	data, err := GetGithubRelease(ReleaseUrl, ReleaseUrlFallback)
+	if err != nil {
+		return err
+	}
+	return installReleaseBuilds(*data)
+}
+
 func installLatestBuilds() error {
+	return installReleaseBuilds(ReleaseData)
+}
+
+func installReleaseBuilds(release GithubRelease) error {
+
 	required := map[string]bool{"patcher.js": false, "preload.js": false, "renderer.js": false, "renderer.css": false}
 	assets := make(map[string]string)
-	for _, asset := range ReleaseData.Assets {
+	for _, asset := range release.Assets {
 		_, needed := required[asset.Name]
 		_, sourceMap := required[strings.TrimSuffix(asset.Name, ".map")]
 		if !needed && !(sourceMap && strings.HasSuffix(asset.Name, ".map")) {
@@ -146,6 +159,6 @@ func installLatestBuilds() error {
 		return err
 	}
 	_ = FixOwnership(FilesDir)
-	InstalledHash = LatestHash
+	InstalledHash = release.Name[strings.LastIndex(release.Name, " ")+1:]
 	return nil
 }

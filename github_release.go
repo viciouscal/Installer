@@ -37,6 +37,8 @@ func releaseGET(address string) (*http.Response, error) {
 		return nil, err
 	}
 	req.Header.Set("User-Agent", UserAgent)
+	req.Header.Set("Cache-Control", "no-cache, no-store")
+	req.Header.Set("Pragma", "no-cache")
 	res, err := releaseClient.Do(req)
 	if err != nil {
 		return nil, err
