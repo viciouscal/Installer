@@ -14,9 +14,9 @@ import (
 
 func glassTheme() *g.StyleSetter {
 	return g.Style().
-		SetColor(g.StyleColorWindowBg, color.RGBA{20, 23, 36, 255}).
-		SetColor(g.StyleColorPopupBg, color.RGBA{31, 35, 51, 250}).
-		SetColor(g.StyleColorBorder, color.RGBA{218, 229, 255, 40}).
+		SetColor(g.StyleColorWindowBg, color.RGBA{0, 0, 0, 255}).
+		SetColor(g.StyleColorPopupBg, color.RGBA{14, 10, 18, 255}).
+		SetColor(g.StyleColorBorder, color.RGBA{176, 57, 111, 80}).
 		SetColor(g.StyleColorFrameBg, color.RGBA{190, 205, 240, 22}).
 		SetColor(g.StyleColorFrameBgHovered, color.RGBA{200, 215, 250, 38}).
 		SetColor(g.StyleColorFrameBgActive, color.RGBA{200, 215, 250, 54}).
@@ -35,9 +35,9 @@ func prepareGlassBackground() {
 	for y := 0; y < 512; y++ {
 		for x := 0; x < 512; x++ {
 			u, v := float64(x)/512, float64(y)/512
-			blue := math.Exp(-((u-0.12)*(u-0.12) + (v-0.12)*(v-0.12)) * 8)
-			pink := math.Exp(-((u-0.93)*(u-0.93) + (v-0.82)*(v-0.82)) * 9)
-			bitmap.SetRGBA(x, y, color.RGBA{uint8((0.065 + blue*0.08 + pink*0.12) * 255), uint8((0.078 + blue*0.1 + pink*0.04) * 255), uint8((0.12 + blue*0.19 + pink*0.11) * 255), 255})
+			purple := math.Max(0, 1-math.Hypot(u-0.5, v-0.5)/0.5) * 0.05
+			pink := math.Max(0, 1-math.Hypot(u-0.8, v-0.2)/0.5) * 0.05
+			bitmap.SetRGBA(x, y, color.RGBA{uint8(147*purple + 219*pink), uint8(51*purple + 39*pink), uint8(234*purple + 119*pink), 255})
 		}
 	}
 	g.EnqueueNewTextureFromRgba(bitmap, func(texture *g.Texture) { glassTexture.Store(texture); g.Update() })
@@ -47,13 +47,10 @@ func glassBackground() g.Widget {
 	return g.Custom(func() {
 		origin := imgui.WindowPos()
 		size := imgui.WindowSize()
-		list := imgui.GetWindowDrawList()
+		imgui.PushClipRect(origin, imgui.Vec2{X: origin.X + size.X, Y: origin.Y + size.Y}, false)
+		defer imgui.PopClipRect()
 		if texture := glassTexture.Load(); texture != nil {
 			g.GetCanvas().AddImage(texture, image.Pt(int(origin.X), int(origin.Y)), image.Pt(int(origin.X+size.X), int(origin.Y+size.Y)))
 		}
-		min := imgui.Vec2{X: origin.X + 20, Y: origin.Y + 20}
-		max := imgui.Vec2{X: origin.X + size.X - 20, Y: origin.Y + size.Y - 20}
-		list.AddRectFilled(min, max, imgui.Vec4{X: 0.82, Y: 0.87, Z: 1, W: 0.035}, 22, 0)
-		list.AddRect(min, max, imgui.Vec4{X: 0.86, Y: 0.91, Z: 1, W: 0.14}, 22, 0, 1)
 	})
 }

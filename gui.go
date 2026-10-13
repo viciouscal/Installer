@@ -513,7 +513,7 @@ func renderInstaller() g.Widget {
 	}
 
 	layout := g.Layout{
-		g.Style().SetFont(uiFont(25)).To(
+		g.Style().SetFont(uiFont(32)).To(
 			renderErrorCard(
 				DiscordYellow,
 				color.Black,
@@ -719,16 +719,17 @@ func renderErrorCard(bgColor color.Color, textColor color.Color, message string,
 				cardHeight := height
 				if bgColor == DiscordYellow {
 					width, _ := g.GetAvailableRegion()
-					lines := wrapUIText(translatedUI(message), width-20, func(text string) float32 {
+					lines := wrapUIText(translatedUI(message), width-32, func(text string) float32 {
 						w, _ := g.CalcTextSize(visualArabic(text))
 						return w
 					})
-					needed := float32(len(lines))*imgui.TextLineHeightWithSpacing() + 24
+					needed := float32(len(lines))*imgui.TextLineHeightWithSpacing() + 40
 					if needed > cardHeight {
 						cardHeight = needed
 					}
 				}
 				g.Child().
+					Flags(g.WindowFlagsNoScrollbar|g.WindowFlagsNoScrollWithMouse).
 					Size(g.Auto, cardHeight).
 					Layout(
 						g.Row(
@@ -746,7 +747,7 @@ func loop() {
 }
 
 func renderMainWindow() {
-	g.PushWindowPadding(48, 48)
+	g.PushWindowPadding(32, 32)
 
 	g.SingleWindow().
 		RegisterKeyboardShortcuts(
@@ -770,7 +771,7 @@ func renderMainWindow() {
 					g.Label(uiText("Vencord Arab Installer")),
 				),
 			),
-			g.Dummy(0, 40),
+			g.Dummy(0, 20),
 
 			&CondWidget{
 				GithubFinished.Load() && GithubError != nil,

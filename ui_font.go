@@ -22,7 +22,7 @@ func setupUIFont() {
 	g.SetDefaultFontFromBytes(arabicFont, 24)
 	arabicFontInfo = g.AddFontFromBytes("IBMPlexSansArabic-Bold", arabicFont, 24)
 	englishFontInfo = g.AddFontFromBytes("IBMPlexSans-Bold", englishFont, 24)
-	for _, size := range []float32{18, 20, 24, 25, 30, 35, 40} {
+	for _, size := range []float32{18, 20, 24, 25, 30, 32, 35, 40} {
 		arabicFontInfo.SetSize(size)
 		englishFontInfo.SetSize(size)
 	}
