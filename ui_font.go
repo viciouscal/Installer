@@ -13,6 +13,10 @@ import (
 //go:embed assets/VencordARUI-Bold.ttf
 var arabicFont []byte
 
+//go:embed assets/VencordARUI-Regular.ttf
+var warningFont []byte
+
+var warningFontInfo *g.FontInfo
 var arabicFontInfo *g.FontInfo
 var englishFontInfo *g.FontInfo
 
@@ -20,11 +24,24 @@ func setupUIFont() {
 	g.SetDefaultFontFromBytes(arabicFont, 24)
 	arabicFontInfo = g.AddFontFromBytes("VencordARUI", arabicFont, 24)
 	englishFontInfo = arabicFontInfo
+	warningFontInfo = g.AddFontFromBytes("VencordARUIRegular", warningFont, 18)
+	warningFontInfo.SetSize(18)
 	for _, size := range []float32{18, 20, 22, 24, 25, 30, 32, 35, 40} {
 		arabicFontInfo.SetSize(size)
 		englishFontInfo.SetSize(size)
 	}
 	g.Label(uiGlyphSeed())
+}
+
+func warningUIFont() *g.FontInfo {
+	if !uiArabic {
+		return uiFont(20)
+	}
+	size := float32(18)
+	if runtime.GOOS == "windows" && win != nil {
+		size *= g.Context.GetPlatform().GetContentScale()
+	}
+	return warningFontInfo.SetSize(size)
 }
 
 func uiFont(size float32) *g.FontInfo {

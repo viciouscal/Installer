@@ -514,7 +514,7 @@ func renderInstaller() g.Widget {
 	}
 
 	layout := g.Layout{
-		g.Style().SetFont(uiFont(Ternary(uiArabic, float32(18), float32(20)))).To(
+		g.Style().SetFont(warningUIFont()).To(
 			renderErrorCard(
 				DiscordYellow,
 				color.Black,
