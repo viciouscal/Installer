@@ -43,7 +43,7 @@ endif
 MACOS_ARCHS := $(ARCH)
 WINDOWS_BINARY := VencordInstaller$(POSTFIX).exe
 ifeq ($(GUI),1)
-WINDOWS_BINARY := VencordArInstaller.exe
+WINDOWS_BINARY := VencordInstaller.exe
 endif
 ifeq ($(ARCH),universal)
 MACOS_ARCHS := amd64 arm64

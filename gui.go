@@ -500,7 +500,7 @@ func renderInstaller() g.Widget {
 	candidates := makeAutoComplete()
 
 	wi, _ := win.GetSize()
-	w := float32(wi) - 96
+	w := float32(wi) - 64
 
 	var currentDiscord *DiscordInstall
 	if radioIdx != customChoiceIdx {
@@ -514,18 +514,18 @@ func renderInstaller() g.Widget {
 	}
 
 	layout := g.Layout{
-		g.Style().SetFont(uiFont(32)).To(
+		g.Style().SetFont(uiFont(20)).To(
 			renderErrorCard(
 				DiscordYellow,
 				color.Black,
 				safetyWarning(),
-				180,
+				0,
 			),
 		),
 
 		g.Dummy(0, 20),
 
-		g.Style().SetFont(uiFont(30)).To(
+		g.Style().SetFont(uiFont(24)).To(
 			uiParagraph("Please select an install to patch"),
 		),
 		g.Dummy(0, 10),
@@ -545,7 +545,7 @@ func renderInstaller() g.Widget {
 			}, nil}
 		}, nil},
 
-		g.Style().SetFont(uiFont(20)).To(
+		g.Style().SetFont(uiFont(24)).To(
 			g.RangeBuilder("Discords", discords, func(i int, v any) g.Widget {
 				d := v.(*DiscordInstall)
 				var text string
@@ -624,7 +624,7 @@ func renderInstaller() g.Widget {
 
 		g.Dummy(0, 20),
 
-		g.Style().SetFont(uiFont(20)).To(
+		g.Style().SetFont(uiFont(24)).To(
 			g.Row(
 				g.Style().
 					SetColor(g.StyleColorButton, DiscordGreen).
@@ -697,14 +697,11 @@ func renderInstaller() g.Widget {
 }
 
 func renderErrorCard(bgColor color.Color, textColor color.Color, message string, height float32) g.Widget {
-	if uiArabic {
-		requiredHeight := float32((strings.Count(translatedUI(message), "\n")+1)*28 + 24)
-		if height < requiredHeight {
-			height = requiredHeight
-		}
-	}
+
 	var content g.Widget
+	flags := g.WindowFlags(0)
 	if bgColor == DiscordYellow {
+		flags = g.WindowFlagsNoScrollbar | g.WindowFlagsNoScrollWithMouse
 		content = warningWithLink(message)
 	} else {
 		message = uiText(message)
@@ -718,19 +715,19 @@ func renderErrorCard(bgColor color.Color, textColor color.Color, message string,
 		To(
 			g.Custom(func() {
 				cardHeight := height
-				if bgColor == DiscordYellow {
+				{
 					width, _ := g.GetAvailableRegion()
 					lines := wrapUIText(translatedUI(message), width-32, func(text string) float32 {
 						w, _ := g.CalcTextSize(visualArabic(text))
 						return w
 					})
-					needed := float32(len(lines))*imgui.TextLineHeightWithSpacing() + 40
+					needed := float32(len(lines))*imgui.TextLineHeightWithSpacing() + 28
 					if needed > cardHeight {
 						cardHeight = needed
 					}
 				}
 				g.Child().
-					Flags(g.WindowFlagsNoScrollbar|g.WindowFlagsNoScrollWithMouse).
+					Flags(flags).
 					Size(g.Auto, cardHeight).
 					Layout(
 						g.Row(
@@ -768,7 +765,7 @@ func renderMainWindow() {
 			languageSelector(),
 			g.Dummy(0, 12),
 			g.Align(g.AlignCenter).To(
-				g.Style().SetFont(uiFont(40)).To(
+				g.Style().SetFont(uiFont(32)).To(
 					g.Label(uiText("Vencord Arab Installer")),
 				),
 			),

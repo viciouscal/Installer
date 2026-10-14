@@ -6,23 +6,21 @@ import (
 	_ "embed"
 	g "github.com/AllenDang/giu"
 	"image"
+	"runtime"
 	"vencordinstaller/buildinfo"
 )
 
-//go:embed assets/IBMPlexSansArabic-Bold.ttf
+//go:embed assets/VencordARUI-Bold.ttf
 var arabicFont []byte
-
-//go:embed assets/IBMPlexSans-Bold.ttf
-var englishFont []byte
 
 var arabicFontInfo *g.FontInfo
 var englishFontInfo *g.FontInfo
 
 func setupUIFont() {
 	g.SetDefaultFontFromBytes(arabicFont, 24)
-	arabicFontInfo = g.AddFontFromBytes("IBMPlexSansArabic-Bold", arabicFont, 24)
-	englishFontInfo = g.AddFontFromBytes("IBMPlexSans-Bold", englishFont, 24)
-	for _, size := range []float32{18, 20, 24, 25, 30, 32, 35, 40} {
+	arabicFontInfo = g.AddFontFromBytes("VencordARUI", arabicFont, 24)
+	englishFontInfo = arabicFontInfo
+	for _, size := range []float32{18, 20, 22, 24, 25, 30, 32, 35, 40} {
 		arabicFontInfo.SetSize(size)
 		englishFontInfo.SetSize(size)
 	}
@@ -30,6 +28,9 @@ func setupUIFont() {
 }
 
 func uiFont(size float32) *g.FontInfo {
+	if runtime.GOOS == "windows" && win != nil {
+		size *= g.Context.GetPlatform().GetContentScale()
+	}
 	if uiArabic {
 		return arabicFontInfo.SetSize(size)
 	}
